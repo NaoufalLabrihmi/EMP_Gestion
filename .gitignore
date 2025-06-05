@@ -26,6 +26,5 @@ Thumbs.db
 *.njsproj
 *.sln
 *.sw?
-**/.env
 backend/.env
 backend/.env.production
