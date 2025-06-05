@@ -28,3 +28,6 @@ Thumbs.db
 *.sw?
 backend/.env
 backend/.env.production
+.env
+.env.production
+
