@@ -1,11 +1,17 @@
 import React from 'react';
 import EmployeeTable from '../components/EmployeeTable';
+import { Routes, Route } from 'react-router-dom';
+import EmployeeEdit from '../components/EmployeeEdit';
 
 export default function Employees() {
   return (
-    <div className="flex flex-col flex-1 p-4 md:p-8">
-      <h1 className="text-2xl font-bold text-blue-900 mb-4">Employee Management</h1>
-      <EmployeeTable />
-    </div>
+    <Routes>
+      <Route index element={
+        <div className="flex flex-col flex-1 p-4 md:p-8">
+          <EmployeeTable />
+        </div>
+      } />
+      <Route path=":id/edit" element={<EmployeeEdit />} />
+    </Routes>
   );
 } 

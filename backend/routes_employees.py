@@ -62,7 +62,14 @@ async def add_employee(file: UploadFile = File(...)):
             pass
     try:
         conn = get_connection()
-        cursor = conn.cursor()
+        cursor = conn.cursor(dictionary=True)
+        # Prevent duplicate id_number
+        cursor.execute("SELECT id FROM employees WHERE id_number = %s", (id_number,))
+        existing = cursor.fetchone()
+        if existing:
+            cursor.close()
+            conn.close()
+            raise HTTPException(status_code=400, detail="Employee with this ID Number already exists.")
         cursor.execute(
             """
             INSERT INTO employees (name, surname, id_number, birth_date, sex, nationality, personal_number)
@@ -71,11 +78,15 @@ async def add_employee(file: UploadFile = File(...)):
             (str(name), str(surname), str(id_number), str(dob), str(sex), str(nationality), str(personal_number))
         )
         conn.commit()
+        cursor.execute("SELECT * FROM employees WHERE id = LAST_INSERT_ID()")
+        new_emp = cursor.fetchone()
         cursor.close()
         conn.close()
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
-    return {"message": "Employee added successfully", "employee": {"name": name, "surname": surname, "id_number": id_number, "birth_date": dob, "sex": sex, "nationality": nationality, "personal_number": personal_number}}
+    return {"message": "Employee added successfully", "employee": new_emp}
 
 @router.get("/employees/list")
 def list_employees():
@@ -104,14 +115,9 @@ def delete_employee(employee_id: int):
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
 @router.patch("/employees/edit/{employee_id}")
-def edit_employee(employee_id: int, req: Request):
+async def edit_employee(employee_id: int, req: Request):
     try:
-        data = req.json() if hasattr(req, 'json') else {}
-        import asyncio
-        if asyncio.iscoroutine(data):
-            data = asyncio.run(data)
-        else:
-            data = req.json()
+        data = await req.json()
     except Exception:
         data = {}
     if not data:

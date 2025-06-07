@@ -1,10 +1,10 @@
 import React from 'react';
 import { Routes, Route } from 'react-router-dom';
-import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import StatCard from './components/StatCard';
 import ChartSection from './components/ChartSection';
 import Employees from './pages/Employees';
+import EmployeeEdit from './components/EmployeeEdit';
 
 const stats = [
   { label: 'Total Users', value: '1,234' },
@@ -50,13 +50,13 @@ function Dashboard() {
 
 export default function App() {
   return (
-    <div className="min-h-screen flex bg-blue-50">
-      <Sidebar />
+    <div className="min-h-screen flex flex-col bg-blue-50">
+      <Header />
       <div className="flex-1 flex flex-col">
-        <Header />
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/employees" element={<Employees />} />
+          <Route path="/employees/:id/edit" element={<EmployeeEdit />} />
         </Routes>
       </div>
     </div>

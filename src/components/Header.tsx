@@ -1,26 +1,41 @@
 import React from 'react';
 import { BellIcon, UserCircleIcon } from './icons';
+import { NavLink, useLocation } from 'react-router-dom';
+
+const nav = [
+  { name: 'Dashboard', path: '/' },
+  { name: 'Employees', path: '/employees' },
+  { name: 'Projects', path: '/projects' },
+  { name: 'Settings', path: '/settings' },
+];
 
 export default function Header() {
+  const location = useLocation();
   return (
-    <header className="relative bg-white/70 backdrop-blur-xl shadow-xl flex items-center justify-between px-6 md:px-12 py-5 md:py-7 animate-slide-in-down rounded-b-2xl border-b border-blue-100" style={{ boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.10)' }}>
-      <div className="absolute left-0 top-0 w-40 h-40 bg-gradient-to-br from-blue-200/40 via-white/30 to-blue-100/0 rounded-full blur-2xl -z-10 animate-pulse" />
-      <div className="absolute right-0 top-0 w-32 h-16 bg-gradient-to-tr from-blue-300/30 via-blue-100/10 to-white/0 rounded-full blur-2xl -z-10 animate-pulse" />
-      <div className="relative">
-        <h1 className="text-2xl md:text-3xl font-bold text-blue-900 tracking-tight drop-shadow flex items-center gap-2">
-          Dashboard
-          <span className="block h-1 w-8 bg-gradient-to-r from-blue-400 via-blue-300 to-blue-200 rounded-full animate-pulse mt-1" />
-        </h1>
+    <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-xl shadow-xl flex flex-col md:flex-row items-center justify-between px-6 md:px-12 py-4 md:py-5 animate-slide-in-down rounded-b-2xl border-b border-blue-100" style={{ boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.10)' }}>
+      <div className="flex items-center gap-8 w-full md:w-auto">
+        <div className="flex items-center gap-3">
+          <span className="text-2xl md:text-3xl font-extrabold text-blue-900 tracking-tight drop-shadow flex items-center gap-2">
+            gestionEmpl
+            <span className="block h-1 w-8 bg-gradient-to-r from-blue-400 via-blue-300 to-blue-200 rounded-full animate-pulse mt-1" />
+          </span>
+        </div>
+        <nav className="flex gap-2 md:gap-4 ml-2">
+          {nav.map(item => (
+            <NavLink
+              key={item.name}
+              to={item.path}
+              className={({ isActive }) =>
+                `px-4 py-2 rounded-lg font-semibold transition-all duration-200 text-base ${isActive ? 'bg-gradient-to-r from-blue-500/90 to-blue-400/80 text-white shadow scale-105' : 'text-blue-900 hover:bg-blue-100 hover:scale-105'}`
+              }
+              aria-current={location.pathname === item.path ? 'page' : undefined}
+            >
+              {item.name}
+            </NavLink>
+          ))}
+        </nav>
       </div>
-      <div className="flex items-center gap-4">
-        <form className="relative">
-          <input
-            type="text"
-            placeholder="Search..."
-            className="px-5 py-2 rounded-full border border-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-200 bg-white/80 text-blue-900 placeholder-blue-400 transition shadow-md"
-            aria-label="Search"
-          />
-        </form>
+      <div className="flex items-center gap-4 mt-4 md:mt-0">
         <button className="relative p-2 rounded-full bg-blue-100 text-blue-700 hover:bg-blue-200 transition shadow-md" aria-label="Notifications">
           <BellIcon />
           <span className="absolute top-1 right-1 w-2 h-2 bg-blue-500 rounded-full animate-pulse" />

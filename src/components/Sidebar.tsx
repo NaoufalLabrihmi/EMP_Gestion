@@ -19,11 +19,15 @@ const nav = [
 
 export default function Sidebar() {
   const location = useLocation();
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(true);
 
   return (
-    <aside className={`transition-all duration-300 ${collapsed ? 'w-20' : 'w-72'} min-h-screen bg-white/70 backdrop-blur-2xl shadow-2xl flex flex-col items-center py-12 px-2 md:px-6 relative overflow-hidden border-r border-blue-100`}
-      style={{ boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.18)' }}>
+    <aside
+      className={`transition-all duration-300 group/sidebar ${collapsed ? 'w-20' : 'w-72'} min-h-screen bg-white/70 backdrop-blur-2xl shadow-2xl flex flex-col items-center py-12 px-2 md:px-6 relative overflow-hidden border-r border-blue-100`}
+      style={{ boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.18)' }}
+      onMouseEnter={() => setCollapsed(false)}
+      onMouseLeave={() => setCollapsed(true)}
+    >
       {/* Animated gradient border */}
       <div className="absolute inset-0 pointer-events-none z-0">
         <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-blue-400/40 via-cyan-400/30 to-blue-700/10 blur-lg animate-pulse" />
