@@ -50,9 +50,9 @@ function Dashboard() {
 
 export default function App() {
   return (
-    <div className="min-h-screen flex flex-col bg-blue-50">
+    <div className="min-h-screen flex flex-col bg-blue-50 w-full">
       <Header />
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col w-full px-2 overflow-x-hidden">
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/employees" element={<Employees />} />

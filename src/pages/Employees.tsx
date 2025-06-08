@@ -7,7 +7,7 @@ export default function Employees() {
   return (
     <Routes>
       <Route index element={
-        <div className="flex flex-col flex-1 p-4 md:p-8">
+        <div className="flex flex-col flex-1 w-full px-2 overflow-x-hidden">
           <EmployeeTable />
         </div>
       } />

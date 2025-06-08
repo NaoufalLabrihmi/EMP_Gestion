@@ -1,9 +1,9 @@
 -- Create the database
-CREATE DATABASE IF NOT EXISTS employee_db
+CREATE DATABASE IF NOT EXISTS employees_db
   DEFAULT CHARACTER SET utf8mb4
   COLLATE utf8mb4_general_ci;
 
-USE employee_db;
+USE employees_db;
 
 -- Tabelle für Mitarbeiter (alle Felder für Personalfragebogen)
 CREATE TABLE IF NOT EXISTS employees (
@@ -14,17 +14,17 @@ CREATE TABLE IF NOT EXISTS employees (
   personal_number VARCHAR(255) DEFAULT NULL,
 
   -- Persönliche Angaben
-  geburtsname VARCHAR(255) DEFAULT NULL, --birth name
-  vorname VARCHAR(255) DEFAULT NULL, --first name
+  vorname VARCHAR(255) DEFAULT NULL, /*first name*/
+  geburtsname VARCHAR(255) DEFAULT NULL, /*birth name*/
   strasse_hausnummer VARCHAR(255) DEFAULT NULL,
   plz_ort VARCHAR(255) DEFAULT NULL,
-  geburtsdatum DATE DEFAULT NULL, --birth_date
-  geschlecht ENUM('männlich','weiblich','divers') DEFAULT NULL, --sex
+  geburtsdatum DATE DEFAULT NULL, /*birth_date*/
+  geschlecht ENUM('männlich','weiblich','divers') DEFAULT NULL, /*sex*/
   versicherungsnummer VARCHAR(100) DEFAULT NULL,
   familienstand VARCHAR(100) DEFAULT NULL,
   geburtsort_land VARCHAR(255) DEFAULT NULL,
   schwerbehindert BOOLEAN DEFAULT NULL,
-  staatsangehoerigkeit VARCHAR(100) DEFAULT NULL, --nationality
+  staatsangehoerigkeit VARCHAR(100) DEFAULT NULL, /*nationality*/
   arbeitnehmernummer VARCHAR(100) DEFAULT NULL,
   iban VARCHAR(100) DEFAULT NULL,
   bic VARCHAR(100) DEFAULT NULL,
@@ -43,10 +43,10 @@ CREATE TABLE IF NOT EXISTS employees (
   ausbildung_beginn DATE DEFAULT NULL,
   ausbildung_ende DATE DEFAULT NULL,
   baugewerbe_seit DATE DEFAULT NULL,
-  arbeitszeit_vollzeit BOOLEAN DEFAULT NULL,      -- Checkbox: Vollzeit
-  arbeitszeit_teilzeit BOOLEAN DEFAULT NULL,      -- Checkbox: Teilz.
-  arbeitszeit_verteilung VARCHAR(255) DEFAULT NULL, -- e.g. "Mo:8,Di:8,Mi:8,Do:8,Fr:8,Sa:0"
-  urlaubsanspruch INT DEFAULT NULL,               -- Kalenderjahr
+  arbeitszeit_vollzeit BOOLEAN DEFAULT NULL,      /* Checkbox: Vollzeit*/
+  arbeitszeit_teilzeit BOOLEAN DEFAULT NULL,      /* Checkbox: Teilz.*/
+  arbeitszeit_verteilung VARCHAR(255) DEFAULT NULL, /* e.g. "Mo:8,Di:8,Mi:8,Do:8,Fr:8,Sa:0"*/
+  urlaubsanspruch INT DEFAULT NULL,               /* Kalenderjahr*/
   kostenstelle VARCHAR(100) DEFAULT NULL,
   abteilungsnummer VARCHAR(100) DEFAULT NULL,
   personengruppe VARCHAR(100) DEFAULT NULL,
@@ -59,7 +59,7 @@ CREATE TABLE IF NOT EXISTS employees (
   abschluss_arbeitsvertrag_am DATE DEFAULT NULL,
   befristete_beschaeftigung_2monate BOOLEAN DEFAULT NULL,
 
-  --Weitere Angaben
+  -- Weitere Angaben
   weitere_angaben TEXT DEFAULT NULL,
 
   -- Steuer

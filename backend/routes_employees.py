@@ -28,30 +28,47 @@ async def add_employee(file: UploadFile = File(...)):
             input_doc,
         )
         doc = result.document
-        name = " ".join([n.value for n in getattr(doc, 'given_names', []) if hasattr(n, 'value') and n.value])
-        surname = " ".join([s.value for s in getattr(doc, 'surnames', []) if hasattr(s, 'value') and s.value])
+        vorname = " ".join([n.value for n in getattr(doc, 'given_names', []) if hasattr(n, 'value') and n.value])
+        # Try to extract geburtsname (birth name) if available
+        geburtsname = None
+        if hasattr(doc, 'surnames'):
+            geburtsname = " ".join([s.value for s in getattr(doc, 'surnames', []) if hasattr(s, 'value') and s.value]) or None
         id_number = getattr(doc, 'document_number', None)
-        id_number = id_number.value if id_number and hasattr(id_number, 'value') else ""
-        dob = getattr(doc, 'birth_date', None)
-        dob = dob.value if dob and hasattr(dob, 'value') else ""
-        sex = getattr(doc, 'sex', None)
-        sex = sex.value if sex and hasattr(sex, 'value') else ""
-        nationality = getattr(doc, 'nationality', None)
-        nationality = nationality.value if nationality and hasattr(nationality, 'value') else ""
+        id_number = id_number.value if id_number and hasattr(id_number, 'value') else None
+        geburtsdatum = getattr(doc, 'birth_date', None)
+        geburtsdatum = geburtsdatum.value if geburtsdatum and hasattr(geburtsdatum, 'value') else None
+        geschlecht = getattr(doc, 'sex', None)
+        geschlecht = geschlecht.value if geschlecht and hasattr(geschlecht, 'value') else None
+        # Map M/F/D to German values
+        if geschlecht == 'M':
+            geschlecht = 'männlich'
+        elif geschlecht == 'F':
+            geschlecht = 'weiblich'
+        elif geschlecht == 'D':
+            geschlecht = 'divers'
+        staatsangehoerigkeit = getattr(doc, 'nationality', None)
+        staatsangehoerigkeit = staatsangehoerigkeit.value if staatsangehoerigkeit and hasattr(staatsangehoerigkeit, 'value') else None
         personal_number = getattr(doc, 'personal_number', None)
-        personal_number = personal_number.value if personal_number and hasattr(personal_number, 'value') else ""
-        if not any([name, surname, id_number, dob, sex, nationality, personal_number]):
+        personal_number = personal_number.value if personal_number and hasattr(personal_number, 'value') else None
+        # Fallback extraction if Mindee fields are empty
+        if not any([vorname, id_number, geburtsdatum, geschlecht, staatsangehoerigkeit, personal_number]):
             import re
             doc_str = str(doc)
             def extract(pattern):
                 match = re.search(pattern, doc_str)
-                return match.group(1).strip() if match else ""
+                return match.group(1).strip() if match else None
             id_number = extract(r"Document Number:\s*(.*)")
-            surname = extract(r"Surnames:\s*(.*)")
-            name = extract(r"Given Names:\s*(.*)")
-            sex = extract(r"Sex:\s*(.*)")
-            dob = extract(r"Birth Date:\s*(.*)")
-            nationality = extract(r"Nationality:\s*(.*)")
+            vorname = extract(r"Given Names:\s*(.*)")
+            geburtsname = extract(r"Surnames:\s*(.*)")
+            geschlecht = extract(r"Sex:\s*(.*)")
+            if geschlecht == 'M':
+                geschlecht = 'männlich'
+            elif geschlecht == 'F':
+                geschlecht = 'weiblich'
+            elif geschlecht == 'D':
+                geschlecht = 'divers'
+            geburtsdatum = extract(r"Birth Date:\s*(.*)")
+            staatsangehoerigkeit = extract(r"Nationality:\s*(.*)")
             personal_number = extract(r"Personal Number:\s*(.*)")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Mindee extraction error: {str(e)}")
@@ -72,10 +89,11 @@ async def add_employee(file: UploadFile = File(...)):
             raise HTTPException(status_code=400, detail="Employee with this ID Number already exists.")
         cursor.execute(
             """
-            INSERT INTO employees (name, surname, id_number, birth_date, sex, nationality, personal_number)
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            INSERT INTO employees (
+                vorname, geburtsname, geburtsdatum, geschlecht, staatsangehoerigkeit, id_number, personal_number
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s)
             """,
-            (str(name), str(surname), str(id_number), str(dob), str(sex), str(nationality), str(personal_number))
+            (vorname, geburtsname, geburtsdatum, geschlecht, staatsangehoerigkeit, id_number, personal_number)
         )
         conn.commit()
         cursor.execute("SELECT * FROM employees WHERE id = LAST_INSERT_ID()")
@@ -97,7 +115,17 @@ def list_employees():
         employees = cursor.fetchall()
         cursor.close()
         conn.close()
-        return JSONResponse(content=employees)
+        expected_fields = [
+            "id", "id_number", "personal_number", "vorname", "geburtsname", "strasse_hausnummer", "plz_ort", "geburtsdatum", "geschlecht", "versicherungsnummer", "familienstand", "geburtsort_land", "schwerbehindert", "staatsangehoerigkeit", "arbeitnehmernummer", "iban", "bic", "eintrittsdatum", "ersteintrittsdatum", "betriebsstaette", "berufsbezeichnung", "taetigkeit", "hauptbeschaeftigung", "nebenbeschaeftigung", "weitere_beschaeftigungen", "schulabschluss", "berufsausbildung", "ausbildung_beginn", "ausbildung_ende", "baugewerbe_seit", "arbeitszeit_vollzeit", "arbeitszeit_teilzeit", "arbeitszeit_verteilung", "urlaubsanspruch", "kostenstelle", "abteilungsnummer", "personengruppe", "arbeitsverhaeltnis_befristet", "zweckbefristet", "befristung_arbeitsvertrag_zum", "schriftlicher_abschluss", "abschluss_arbeitsvertrag_am", "befristete_beschaeftigung_2monate", "weitere_angaben", "identifikationsnummer", "finanzamt_nr", "steuerklasse", "kinderfreibetraege", "konfession", "gesetzliche_krankenkasse", "elterneigenschaft", "kv", "rv", "av", "pv", "uv_gefahrtarif", "entlohnung_bezeichnung1", "entlohnung_betrag1", "entlohnung_gueltig_ab1", "entlohnung_stundenlohn1", "entlohnung_gueltig_ab_stunden1", "entlohnung_bezeichnung2", "entlohnung_betrag2", "entlohnung_gueltig_ab2", "entlohnung_stundenlohn2", "entlohnung_gueltig_ab_stunden2", "entlohnung_bezeichnung3", "entlohnung_betrag3", "entlohnung_gueltig_ab3", "entlohnung_stundenlohn3", "entlohnung_gueltig_ab_stunden3", "vwl_empfaenger", "vwl_betrag", "vwl_ag_anteil", "vwl_seit_wann", "vwl_vertragsnr", "vwl_kontonummer", "vwl_bankleitzahl", "ap_arbeitsvertrag", "ap_bescheinigung_lsta", "ap_sv_ausweis", "ap_mitgliedsbescheinigung_kk", "ap_bescheinigung_private_kk", "ap_vwl_vertrag", "ap_nachweis_elterneigenschaft", "ap_vertrag_bav", "ap_schwerbehindertenausweis", "ap_unterlagen_sozialkasse", "vorbeschaeftigung_zeitraum_von", "vorbeschaeftigung_zeitraum_bis", "vorbeschaeftigung_art", "vorbeschaeftigung_tage"
+        ]
+        for emp in employees:
+            for field in expected_fields:
+                v = emp.get(field, '')
+                if v is None:
+                    emp[field] = ''
+                elif not isinstance(v, str):
+                    emp[field] = str(v)
+        return JSONResponse(content=employees, status_code=200)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
@@ -122,7 +150,18 @@ async def edit_employee(employee_id: int, req: Request):
         data = {}
     if not data:
         raise HTTPException(status_code=400, detail="No data provided for update.")
-    allowed_fields = ["name", "surname", "id_number", "birth_date", "sex", "nationality", "personal_number"]
+    # Map M/F/D to German values if present in edit
+    if 'geschlecht' in data:
+        if data['geschlecht'] == 'M':
+            data['geschlecht'] = 'männlich'
+        elif data['geschlecht'] == 'F':
+            data['geschlecht'] = 'weiblich'
+        elif data['geschlecht'] == 'D':
+            data['geschlecht'] = 'divers'
+    # Only allow updating fields that exist in the new schema
+    allowed_fields = [
+        "vorname", "geburtsname", "strasse_hausnummer", "plz_ort", "geburtsdatum", "geschlecht", "versicherungsnummer", "familienstand", "geburtsort_land", "schwerbehindert", "staatsangehoerigkeit", "arbeitnehmernummer", "iban", "bic", "eintrittsdatum", "ersteintrittsdatum", "betriebsstaette", "berufsbezeichnung", "taetigkeit", "hauptbeschaeftigung", "nebenbeschaeftigung", "weitere_beschaeftigungen", "schulabschluss", "berufsausbildung", "ausbildung_beginn", "ausbildung_ende", "baugewerbe_seit", "arbeitszeit_vollzeit", "arbeitszeit_teilzeit", "arbeitszeit_verteilung", "urlaubsanspruch", "kostenstelle", "abteilungsnummer", "personengruppe", "arbeitsverhaeltnis_befristet", "zweckbefristet", "befristung_arbeitsvertrag_zum", "schriftlicher_abschluss", "abschluss_arbeitsvertrag_am", "befristete_beschaeftigung_2monate", "weitere_angaben", "identifikationsnummer", "finanzamt_nr", "steuerklasse", "kinderfreibetraege", "konfession", "gesetzliche_krankenkasse", "elterneigenschaft", "kv", "rv", "av", "pv", "uv_gefahrtarif", "entlohnung_bezeichnung1", "entlohnung_betrag1", "entlohnung_gueltig_ab1", "entlohnung_stundenlohn1", "entlohnung_gueltig_ab_stunden1", "entlohnung_bezeichnung2", "entlohnung_betrag2", "entlohnung_gueltig_ab2", "entlohnung_stundenlohn2", "entlohnung_gueltig_ab_stunden2", "entlohnung_bezeichnung3", "entlohnung_betrag3", "entlohnung_gueltig_ab3", "entlohnung_stundenlohn3", "entlohnung_gueltig_ab_stunden3", "vwl_empfaenger", "vwl_betrag", "vwl_ag_anteil", "vwl_seit_wann", "vwl_vertragsnr", "vwl_kontonummer", "vwl_bankleitzahl", "ap_arbeitsvertrag", "ap_bescheinigung_lsta", "ap_sv_ausweis", "ap_mitgliedsbescheinigung_kk", "ap_bescheinigung_private_kk", "ap_vwl_vertrag", "ap_nachweis_elterneigenschaft", "ap_vertrag_bav", "ap_schwerbehindertenausweis", "ap_unterlagen_sozialkasse", "vorbeschaeftigung_zeitraum_von", "vorbeschaeftigung_zeitraum_bis", "vorbeschaeftigung_art", "vorbeschaeftigung_tage", "id_number", "personal_number"
+    ]
     fields = []
     values = []
     for field in allowed_fields:
@@ -152,21 +191,12 @@ def download_employee_pdf(employee_id: int):
     try:
         conn = get_connection()
         cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT name, surname FROM employees WHERE id = %s", (employee_id,))
+        cursor.execute("SELECT * FROM employees WHERE id = %s", (employee_id,))
         emp = cursor.fetchone()
         cursor.close()
         conn.close()
         if not emp:
             raise HTTPException(status_code=404, detail="Employee not found.")
-        full_name = f"{emp['surname']} {emp['name']}".strip()
-        # Generate PDF
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
-            c = canvas.Canvas(tmp.name, pagesize=A4)
-            width, height = A4
-            c.setFont("Helvetica-Bold", 20)
-            c.drawString(100, height - 100, f"Employee: {full_name}")
-            c.save()
-            tmp_path = tmp.name
-        return FileResponse(tmp_path, filename=f"{full_name}.pdf", media_type="application/pdf")
+        return emp
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"PDF generation error: {str(e)}") 
