@@ -176,19 +176,19 @@ const EmployeePDF: React.FC<EmployeePDFProps> = ({ data, stand }) => {
               <Text>Eintrittsdatum : {data.eintrittsdatum || ''}</Text>
             </View>
             <View style={{ flex: 1, borderRight: '1px solid #222', padding: 4 }}>
-              <Text>Ersteintrittsdatum</Text>
+              <Text>Ersteintrittsdatum : {data.ersteintrittsdatum || ''}</Text>
             </View>
             <View style={{ flex: 1, padding: 4 }}>
-              <Text>Betriebsstätte</Text>
+              <Text>Betriebsstätte : {data.betriebsstaette || ''}</Text>
             </View>
           </View>
           {/* Second row: Berufsbezeichnung, Ausgeübte Tätigkeit */}
           <View style={{ flexDirection: 'row', borderBottom: '1px solid #222' }}>
             <View style={{ flex: 1.5, borderRight: '1px solid #222', padding: 4 }}>
-              <Text>Berufsbezeichnung</Text>
+              <Text>Berufsbezeichnung : {data.berufsbezeichnung || ''}</Text>
             </View>
             <View style={{ flex: 1.5, padding: 4 }}>
-              <Text>Ausgeübte Tätigkeit</Text>
+              <Text>Ausgeübte Tätigkeit : {data.taetigkeit || ''}</Text>
             </View>
           </View>
           {/* Third row: Hauptbeschäftigung, Nebenbeschäftigung */}
@@ -266,13 +266,13 @@ const EmployeePDF: React.FC<EmployeePDFProps> = ({ data, stand }) => {
           {/* Sixth row: Beginn der Ausbildung, Ende, Im Baugewerbe beschäftigt seit */}
           <View style={{ flexDirection: 'row', borderBottom: '1px solid #222' }}>
             <View style={{ flex: 1, borderRight: '1px solid #222', padding: 4 }}>
-              <Text>Beginn der Ausbildung:</Text>
+              <Text>Beginn der Ausbildung: {data.ausbildung_beginn || ''}</Text>
             </View>
             <View style={{ flex: 1, borderRight: '1px solid #222', padding: 4 }}>
-              <Text>Voraussichtliches Ende der Ausbildung:</Text>
+              <Text>Voraussichtliches Ende der Ausbildung: {data.ausbildung_ende || ''}</Text>
             </View>
             <View style={{ flex: 1, padding: 4 }}>
-              <Text>Im Baugewerbe beschäftigt seit</Text>
+              <Text>Im Baugewerbe beschäftigt seit: {data.baugewerbe_seit || ''}</Text>
             </View>
           </View>
           {/* Seventh row: Wöchentliche Arbeitszeit, Verteilung, Urlaubsanspruch */}
@@ -295,22 +295,22 @@ const EmployeePDF: React.FC<EmployeePDFProps> = ({ data, stand }) => {
               </View>
             </View>
             <View style={{ flex: 1, padding: 4 }}>
-              <Text>Urlaubsanspruch</Text>
+              <Text>Urlaubsanspruch: {data.urlaubsanspruch || ''}</Text>
               <Text style={styles.small}>(Kalenderjahr)</Text>
             </View>
           </View>
           {/* Eighth row: Kostenstelle, Abt.-Nummer, Personengruppe */}
           <View style={{ flexDirection: 'row' }}>
             <View style={{ flex: 1, borderRight: '1px solid #222', padding: 4 }}>
-              <Text>Kostenstelle</Text>
+              <Text>Kostenstelle: {data.kostenstelle || ''}</Text>
               <View style={{ height: 10, marginTop: 2, marginRight: 8, marginLeft: 0 }} />
             </View>
             <View style={{ flex: 1, borderRight: '1px solid #222', padding: 4 }}>
-              <Text>Abt.-Nummer</Text>
+              <Text>Abt.-Nummer: {data.abteilungsnummer || ''}</Text>
               <View style={{ height: 10, marginTop: 2, marginRight: 8, marginLeft: 0 }} />
             </View>
             <View style={{ flex: 1, borderRight: '1px solid #222', padding: 4 }}>
-              <Text>Personengruppe</Text> 
+              <Text>Personengruppe: {data.personengruppe || ''}</Text> 
               <View style={{ height: 10, marginTop: 2, marginRight: 8, marginLeft: 0 }} />
             </View>
           </View>
@@ -331,7 +331,7 @@ const EmployeePDF: React.FC<EmployeePDFProps> = ({ data, stand }) => {
             </View>
             <View style={{ width: 2, backgroundColor: '#222', alignSelf: 'stretch', marginRight: -1 }} />
             <View style={{ flex: 1.8, backgroundColor: '#eee', padding: 4 }}>
-              <Text>Befristung Arbeitsvertrag zum:</Text>
+              <Text>Befristung Arbeitsvertrag zum: {data.befristung_arbeitsvertrag_zum || ''}</Text>
             </View>
           </View>
           {/* Second row */}
@@ -342,7 +342,7 @@ const EmployeePDF: React.FC<EmployeePDFProps> = ({ data, stand }) => {
             </View>
             <View style={{ width: 2, backgroundColor: '#222', alignSelf: 'stretch', marginRight: -1 }} />
             <View style={{ flex: 1.8, backgroundColor: '#eee', padding: 4 }}>
-              <Text>Abschluss Arbeitsvertrag am:</Text>
+              <Text>Abschluss Arbeitsvertrag am: {data.abschluss_arbeitsvertrag_am || ''}</Text>
             </View>
           </View>
           {/* Third row */}
@@ -358,7 +358,9 @@ const EmployeePDF: React.FC<EmployeePDFProps> = ({ data, stand }) => {
           <View style={{ flexDirection: 'row', backgroundColor: '#eee', borderBottom: '1px solid #222' }}>
             <Text style={{ fontWeight: 'bold', fontSize: 11, padding: 4 }}>Weitere Angaben</Text>
           </View>
-          <View style={{ minHeight: 20, padding: 4 }} />
+          <View style={{ minHeight: 20, padding: 4 }}>
+            <Text>{data.weitere_angaben || ''}</Text>
+          </View>
         </View>
         {/* Footer: Stand and page number */}
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
@@ -396,24 +398,24 @@ const EmployeePDF: React.FC<EmployeePDFProps> = ({ data, stand }) => {
           </View>
           <View style={{ flexDirection: 'row', borderBottom: '1.2px solid #222' }}>
             <View style={{ flex: 1, borderRight: '1.2px solid #222', padding: 2 }}>
-              <Text>Identifikationsnr.</Text>
-              <View style={{ height: 10, marginTop: 2, marginRight: 8, marginLeft: 0 }} />
+              <Text>Identifikationsnr. : {data.identifikationsnummer || ''}</Text>
+              <Text style={{ height: 10, marginTop: 2, marginRight: 8, marginLeft: 0 }}>{data.identifikationsnummer || ''}</Text>
             </View>
             <View style={{ flex: 1, borderRight: '1.2px solid #222', padding: 2 }}>
               <Text>Finanzamt-Nr.</Text>
-              <View style={{ height: 10, marginTop: 2, marginRight: 8, marginLeft: 0 }} />
+              <Text style={{ height: 10, marginTop: 2, marginRight: 8, marginLeft: 0 }}>{data.finanzamt_nr || ''}</Text>
             </View>
             <View style={{ flex: 1, borderRight: '1.2px solid #222', padding: 2 }}>
               <Text>Steuerklasse/Faktor</Text>
-              <View style={{ height: 10, marginTop: 2, marginRight: 8, marginLeft: 0 }} />
+              <Text style={{ height: 10, marginTop: 2, marginRight: 8, marginLeft: 0 }}>{data.steuerklasse_faktor || ''}</Text>
             </View>
             <View style={{ flex: 1, borderRight: '1.2px solid #222', padding: 2 }}>
               <Text>Kinderfreibeträge</Text>
-              <View style={{ height: 10, marginTop: 2, marginRight: 8, marginLeft: 0 }} />
+              <Text style={{ height: 10, marginTop: 2, marginRight: 8, marginLeft: 0 }}>{data.kinderfreibetraege || ''}</Text>
             </View>
             <View style={{ flex: 1, padding: 2 }}>
               <Text>Konfession</Text>
-              <View style={{ height: 10, marginTop: 2, marginRight: 8, marginLeft: 0 }} />
+              <Text style={{ height: 10, marginTop: 2, marginRight: 8, marginLeft: 0 }}>{data.konfession || ''}</Text>
             </View>
           </View>
         </View>
@@ -425,7 +427,7 @@ const EmployeePDF: React.FC<EmployeePDFProps> = ({ data, stand }) => {
           <View style={{ flexDirection: 'row', borderBottom: '1.2px solid #222' }}>
             <View style={{ flex: 2, borderRight: '1.2px solid #222', padding: 2 }}>
               <Text>Gesetzl. Krankenkasse (bei PKV: letzte ges. Krankenkasse)</Text>
-              <View style={{ height: 11, marginTop: 2, marginRight: 8, marginLeft: 0 }} />
+              <Text style={{ height: 10, marginTop: 2, marginRight: 8, marginLeft: 0 }}>{data.gesetzliche_krankenkasse || ''}</Text>
             </View>
             <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', padding: 6 }}>
               <Text>Elterneigenschaft </Text>
@@ -436,11 +438,26 @@ const EmployeePDF: React.FC<EmployeePDFProps> = ({ data, stand }) => {
             </View>
           </View>
           <View style={{ flexDirection: 'row' }}>
-            <View style={{ flex: 1, backgroundColor: '#eee', borderRight: '1.2px solid #222', padding: 2 }}><Text>KV</Text><View style={{ height: 8, marginTop: 2, marginRight: 8, marginLeft: 0 }} /></View>
-            <View style={{ flex: 1, backgroundColor: '#eee', borderRight: '1.2px solid #222', padding: 2 }}><Text>RV</Text><View style={{ height: 8, marginTop: 2, marginRight: 8, marginLeft: 0 }} /></View>
-            <View style={{ flex: 1, backgroundColor: '#eee', borderRight: '1.2px solid #222', padding: 2 }}><Text>AV</Text><View style={{ height: 8, marginTop: 2, marginRight: 8, marginLeft: 0 }} /></View>
-            <View style={{ flex: 1, backgroundColor: '#eee', borderRight: '1.2px solid #222', padding: 2 }}><Text>PV</Text><View style={{ height: 8, marginTop: 2, marginRight: 8, marginLeft: 0 }} /></View>
-            <View style={{ flex: 1, backgroundColor: '#eee', padding: 2 }}><Text>UV - Gefahrtarif</Text><View style={{ height: 8, marginTop: 2, marginRight: 8, marginLeft: 0 }} /></View>
+            <View style={{ flex: 1, backgroundColor: '#eee', borderRight: '1.2px solid #222', padding: 2 }}>
+              <Text>KV</Text>
+              <Text style={{ fontSize: 7, marginLeft: 4 }}>{data.kv || ''}</Text>
+            </View>
+            <View style={{ flex: 1, backgroundColor: '#eee', borderRight: '1.2px solid #222', padding: 2 }}>
+              <Text>RV</Text>
+              <Text style={{ fontSize: 7, marginLeft: 4 }}>{data.rv || ''}</Text>
+            </View>
+            <View style={{ flex: 1, backgroundColor: '#eee', borderRight: '1.2px solid #222', padding: 2 }}>
+              <Text>AV</Text>
+              <Text style={{ fontSize: 7, marginLeft: 4 }}>{data.av || ''}</Text>
+            </View>
+            <View style={{ flex: 1, backgroundColor: '#eee', borderRight: '1.2px solid #222', padding: 2 }}>
+              <Text>PV</Text>
+              <Text style={{ fontSize: 7, marginLeft: 4 }}>{data.pv || ''}</Text>
+            </View>
+            <View style={{ flex: 1, backgroundColor: '#eee', padding: 2 }}>
+              <Text>UV - Gefahrtarif</Text>
+              <Text style={{ fontSize: 7, marginLeft: 4 }}>{data.uv_gefahrtarif || ''}</Text>
+            </View>
           </View>
         </View>
         {/* Entlohnung */}
@@ -448,18 +465,37 @@ const EmployeePDF: React.FC<EmployeePDFProps> = ({ data, stand }) => {
           <View style={{ flexDirection: 'row', backgroundColor: '#eee', borderBottom: '1px solid #222' }}>
             <Text style={{ fontWeight: 'bold', fontSize: 8, padding: 4 }}>Entlohnung</Text>
           </View>
-          {[0,1,2].map(i => (
-            <View key={i} style={{ flexDirection: 'row', borderBottom: i < 2 ? '1px solid #222' : undefined, backgroundColor: '#eee' }}>
-              <View style={{ flex: 1, padding: 2 }}><Text>Bezeichnung</Text></View>
-              <View style={{ height: 8, marginTop: 2, marginRight: 8, marginLeft: 0 }} />
-              <View style={{ flex: 1, padding: 2 }}><Text>Betrag</Text></View>
-              <View style={{ height: 8, marginTop: 2, marginRight: 8, marginLeft: 0 }} />
-              <View style={{ flex: 1, padding: 2 }}><Text>Gültig ab</Text></View>
-              <View style={{ height: 8, marginTop: 2, marginRight: 8, marginLeft: 0 }} />
-              <View style={{ flex: 1, borderLeft: '1px solid #222', padding: 2 }}><Text>Stundenlohn</Text><View style={{ height: 8, marginTop: 2, marginRight: 8, marginLeft: 0 }} /></View>
-              <View style={{ flex: 1, padding: 2 }}><Text>Gültig ab</Text><View style={{ height: 8, marginTop: 2, marginRight: 8, marginLeft: 0 }} /></View>
-            </View>
-          ))}
+          {[0,1,2].map(i => {
+            const bezeichnung = data[`entlohnung_bezeichnung${i+1}`] || '';
+            const betrag = data[`entlohnung_betrag${i+1}`] || '';
+            const gueltig_ab = data[`entlohnung_gueltig_ab${i+1}`] || '';
+            const stundenlohn = data[`entlohnung_stundenlohn${i+1}`] || '';
+            const gueltig_ab_stunden = data[`entlohnung_gueltig_ab_stunden${i+1}`] || '';
+            return (
+              <View key={i} style={{ flexDirection: 'row', borderBottom: i < 2 ? '1px solid #222' : undefined, backgroundColor: '#eee' }}>
+                <View style={{ flex: 1, padding: 2 }}>
+                  <Text>Bezeichnung</Text>
+                  <Text style={{ fontSize: 7, marginLeft: 4 }}>{bezeichnung}</Text>
+                </View>
+                <View style={{ flex: 1, padding: 2 }}>
+                  <Text>Betrag</Text>
+                  <Text style={{ fontSize: 7, marginLeft: 4 }}>{betrag}</Text>
+                </View>
+                <View style={{ flex: 1, padding: 2 }}>
+                  <Text>Gültig ab</Text>
+                  <Text style={{ fontSize: 7, marginLeft: 4 }}>{gueltig_ab}</Text>
+                </View>
+                <View style={{ flex: 1, borderLeft: '1px solid #222', padding: 2 }}>
+                  <Text>Stundenlohn</Text>
+                  <Text style={{ fontSize: 7, marginLeft: 4 }}>{stundenlohn}</Text>
+                </View>
+                <View style={{ flex: 1, padding: 2 }}>
+                  <Text>Gültig ab</Text>
+                  <Text style={{ fontSize: 7, marginLeft: 4 }}>{gueltig_ab_stunden}</Text>
+                </View>
+              </View>
+            );
+          })}
         </View>
         {/* VWL */}
         <View style={{ border: '1.5px solid #222', marginTop: 8, marginBottom: 0 }}>
@@ -469,25 +505,42 @@ const EmployeePDF: React.FC<EmployeePDFProps> = ({ data, stand }) => {
           </View>
           {/* First row: Empfänger VWL, Betrag, AG-Anteil */}
           <View style={{ flexDirection: 'row' }}>
-            <View style={{ flex: 2, borderRight: '1px solid #222', borderBottom: 'none', padding: 1 }}><Text>Empfänger VWL</Text></View>
-            <View style={{ flex: 1, borderRight: '1px solid #222', borderBottom: '1px solid #222', padding: 1 }}><Text>Betrag</Text><View style={{ height: 8, marginTop: 2, marginRight: 8, marginLeft: 0 }} /></View>
-            <View style={{ flex: 1, backgroundColor: '#eee', borderBottom: '1px solid #222', padding: 1 }}><Text>AG-Anteil (Höhe mtl.)</Text><View style={{ height: 8, marginTop: 2, marginRight: 8, marginLeft: 0 }} /></View>
+            <View style={{ flex: 2, borderRight: '1px solid #222', borderBottom: 'none', padding: 1 }}>
+              <Text>Empfänger VWL</Text>
+              <Text style={{ fontSize: 7, marginLeft: 4 }}>{data.vwl_empfaenger || ''}</Text>
+            </View>
+            <View style={{ flex: 1, borderRight: '1px solid #222', borderBottom: '1px solid #222', padding: 1 }}>
+              <Text>Betrag</Text>
+              <Text style={{ fontSize: 7, marginLeft: 4 }}>{data.vwl_betrag || ''}</Text>
+            </View>
+            <View style={{ flex: 1, backgroundColor: '#eee', borderBottom: '1px solid #222', padding: 1 }}>
+              <Text>AG-Anteil (Höhe mtl.)</Text>
+              <Text style={{ fontSize: 7, marginLeft: 4 }}>{data.vwl_ag_anteil || ''}</Text>
+            </View>
           </View>
           {/* Second row: empty left, Seit wann, Vertragsnr. */}
           <View style={{ flexDirection: 'row', borderBottom: '1px solid #222' }}>
             <View style={{ flex: 2, borderRight: '1px solid #222', padding: 1, borderTop: 'none' }}></View>
-            <View style={{ flex: 1, borderRight: '1px solid #222', padding: 1, borderTop: 'none' }}><Text>Seit wann</Text><View style={{ height: 8, marginTop: 2, marginRight: 8, marginLeft: 0 }} /></View>
-            <View style={{ flex: 1, padding: 1, borderTop: 'none' }}><Text>Vertragsnr.</Text><View style={{ height: 8, marginTop: 2, marginRight: 8, marginLeft: 0 }} /></View>
+            <View style={{ flex: 1, borderRight: '1px solid #222', padding: 1, borderTop: 'none' }}>
+              <Text>Seit wann</Text>
+              <Text style={{ fontSize: 7, marginLeft: 4 }}>{data.vwl_seit_wann || ''}</Text>
+            </View>
+            <View style={{ flex: 1, padding: 1, borderTop: 'none' }}>
+              <Text>Vertragsnr.</Text>
+              <Text style={{ fontSize: 7, marginLeft: 4 }}>{data.vwl_vertragsnr || ''}</Text>
+            </View>
           </View>
           {/* Third row: Kontonummer, Bankleitzahl/Bankbezeichnung */}
           <View style={{ flexDirection: 'row' }}>
             <View style={{ flex: 2, padding: 1 }}>
               <Text>Kontonummer</Text>
               <Text style={{ fontSize: 10 }}>(IBAN)</Text>
+              <Text style={{ fontSize: 7, marginLeft: 4 }}>{data.vwl_kontonummer || ''}</Text>
             </View>
             <View style={{ flex: 2, borderLeft: '1px solid #222', padding: 2.5 }}>
               <Text>Bankleitzahl/Bankbezeichnung</Text>
               <Text style={{ fontSize: 10 }}>(BIC)</Text>
+              <Text style={{ fontSize: 7, marginLeft: 4 }}>{data.vwl_bankleitzahl || ''}</Text>
             </View>
           </View>
         </View>
@@ -545,10 +598,18 @@ const EmployeePDF: React.FC<EmployeePDFProps> = ({ data, stand }) => {
           </View>
           {/* Empty row for user input */}
           <View style={{ flexDirection: 'row' }}>
-            <View style={{ flex: 0.7, borderRight: '1px solid #222', padding: 4, height: 20 }} />
-            <View style={{ flex: 0.7, borderRight: '1px solid #222', padding: 4, height: 20 }} />
-            <View style={{ flex: 1.3, borderRight: '1px solid #222', padding: 4, height: 20 }} />
-            <View style={{ flex: 1.3, padding: 4, height: 20 }} />
+            <View style={{ flex: 0.7, borderRight: '1px solid #222', padding: 4, height: 20 }}>
+              <Text style={{ fontSize: 7, marginLeft: 4 }}>{data.vorbeschaeftigung_zeitraum_von || ''}</Text>
+            </View>
+            <View style={{ flex: 0.7, borderRight: '1px solid #222', padding: 4, height: 20 }}>
+              <Text style={{ fontSize: 7, marginLeft: 4 }}>{data.vorbeschaeftigung_zeitraum_bis || ''}</Text>
+            </View>
+            <View style={{ flex: 1.3, borderRight: '1px solid #222', padding: 4, height: 20 }}>
+              <Text style={{ fontSize: 7, marginLeft: 4 }}>{data.vorbeschaeftigung_art || ''}</Text>
+            </View>
+            <View style={{ flex: 1.3, padding: 4, height: 20 }}>
+              <Text style={{ fontSize: 7, marginLeft: 4 }}>{data.vorbeschaeftigung_tage || ''}</Text>
+            </View>
           </View>
         </View>
         {/* Erklärung des Arbeitnehmers */}

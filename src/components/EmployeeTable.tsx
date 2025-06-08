@@ -25,7 +25,6 @@ export default function EmployeeTable() {
     axios.get(`${API_BASE_URL}/employees/list`)
       .then(res => {
         setEmployees(res.data);
-        console.log('Fetched employees:', res.data);
       })
       .catch(() => setEmployees([]));
   }, []);
