@@ -247,7 +247,18 @@ def download_erklaerung_pdf(employee_id: int):
             "geburtsdatum": "txtf_5_Geburtsdatum",
             "geschlecht": "rbtn_6_Geschlecht",
             "staatsangehoerigkeit": "txtf_7_Staatsangehoerigkeit",
-            # Add more mappings as you discover PDF field names and DB fields
+            # Address fields (may need splitting in the future)
+            "strasse_hausnummer": "txtf_11_Strasse",  # TODO: split if needed
+            # "hausnummer": "txtf_12_Hausnummer",    # Not in DB, could split
+            "plz_ort": "txtf_13_Postleitzahl",        # TODO: split if needed
+            # "ort": "txtf_14_Ort",                  # Not in DB, could split
+            "kontaktperson": "txtf_15_Kontaktperson",
+            "telefon": "txtf_16_Telefon",
+            # "email": "txtf_17_E-Mail",             # Not in DB, could add
+            "betriebsstaette": "txtf_19_Betriebsnummer",
+            "firma": "txtf_10_Firma",
+            "berufsbezeichnung": "txtf_25_Berufsbezeichnung",
+            # Add more as you see fit and as you expand your DB or PDF fields
         }
 
         # 5. Build data_map with only available data
