@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import { API_BASE_URL } from '../lib/api';
-import { FaCheck, FaDownload, FaChevronLeft, FaChevronRight, FaPlus, FaTimes, FaTrash, FaEdit } from 'react-icons/fa';
+import { FaCheck, FaDownload, FaChevronLeft, FaChevronRight, FaPlus, FaTimes, FaTrash, FaEdit, FaFilePdf } from 'react-icons/fa';
 import { pdf } from '@react-pdf/renderer';
 import EmployeePDF from './EmployeePDF';
 import { useNavigate } from 'react-router-dom';
@@ -152,6 +152,28 @@ export default function EmployeeTable() {
     }
     setLoading(false);
   };
+  const handleOfficialDownload = async (emp: any) => {
+    setLoading(true);
+    try {
+      const response = await axios.get(
+        `${API_BASE_URL}/employees/erklaerung-pdf/${emp.id}`,
+        { responseType: 'blob' }
+      );
+      const filename = `erklaerung_${emp.vorname || ''}_${emp.geburtsname || ''}.pdf`;
+      const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode?.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      setToast({ message: 'PDF downloaded!', type: 'success' });
+    } catch (err) {
+      setToast({ message: 'Download failed', type: 'error' });
+    }
+    setLoading(false);
+  };
   React.useEffect(() => {
     if (toast) {
       const t = setTimeout(() => setToast(null), 2000);
@@ -235,7 +257,22 @@ export default function EmployeeTable() {
                       </>
                     ) : (
                       <>
-                        <button className="p-2 rounded-xl bg-gradient-to-r from-blue-100 to-cyan-100 text-blue-700 shadow hover:scale-110 transition flex items-center justify-center" title="Download" onClick={() => handleDownload(emp)} disabled={loading}><FaDownload /></button>
+                        <button
+                          className="p-2 rounded-xl bg-gradient-to-r from-blue-100 to-cyan-100 text-blue-700 shadow hover:scale-110 transition flex items-center justify-center"
+                          title="Download Official PDF"
+                          onClick={() => handleOfficialDownload(emp)}
+                          disabled={loading}
+                        >
+                          <FaDownload />
+                        </button>
+                        <button
+                          className="p-2 rounded-xl bg-gradient-to-r from-blue-100 to-cyan-100 text-blue-700 shadow hover:scale-110 transition flex items-center justify-center"
+                          title="Download Custom PDF"
+                          onClick={() => handleDownload(emp)}
+                          disabled={loading}
+                        >
+                          <FaFilePdf />
+                        </button>
                         <button onClick={() => navigate(`/employees/${emp.id}/edit`)} title="Edit" className="p-2 rounded-xl bg-gradient-to-r from-yellow-100 to-yellow-300 text-yellow-700 shadow hover:scale-110 transition flex items-center justify-center" disabled={loading}><FaEdit /></button>
                         <button onClick={() => setConfirmDelete({ open: true, id: emp.id })} title="Delete" className="p-2 rounded-xl bg-gradient-to-r from-red-100 to-pink-100 text-red-600 shadow hover:scale-110 transition flex items-center justify-center" disabled={loading}><FaTrash /></button>
                       </>
@@ -258,7 +295,22 @@ export default function EmployeeTable() {
             <div className="flex items-center justify-between mb-2">
               <div className="text-blue-900 font-bold text-xl">{emp.vorname} {emp.geburtsname}</div>
               <div className="flex gap-2">
-                <button className="p-2 rounded-xl bg-gradient-to-r from-blue-100 to-cyan-100 text-blue-700 shadow hover:scale-110 transition flex items-center justify-center" title="Download" onClick={() => handleDownload(emp)} disabled={loading}><FaDownload /></button>
+                <button
+                  className="p-2 rounded-xl bg-gradient-to-r from-blue-100 to-cyan-100 text-blue-700 shadow hover:scale-110 transition flex items-center justify-center"
+                  title="Download Official PDF"
+                  onClick={() => handleOfficialDownload(emp)}
+                  disabled={loading}
+                >
+                  <FaDownload />
+                </button>
+                <button
+                  className="p-2 rounded-xl bg-gradient-to-r from-blue-100 to-cyan-100 text-blue-700 shadow hover:scale-110 transition flex items-center justify-center"
+                  title="Download Custom PDF"
+                  onClick={() => handleDownload(emp)}
+                  disabled={loading}
+                >
+                  <FaFilePdf />
+                </button>
                 <button onClick={() => navigate(`/employees/${emp.id}/edit`)} title="Edit" className="p-2 rounded-xl bg-gradient-to-r from-yellow-100 to-yellow-300 text-yellow-700 shadow hover:scale-110 transition flex items-center justify-center" disabled={loading}><FaEdit /></button>
                 <button onClick={() => setConfirmDelete({ open: true, id: emp.id })} title="Delete" className="p-2 rounded-xl bg-gradient-to-r from-red-100 to-pink-100 text-red-600 shadow hover:scale-110 transition flex items-center justify-center" disabled={loading}><FaTrash /></button>
               </div>

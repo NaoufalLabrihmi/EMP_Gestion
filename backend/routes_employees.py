@@ -6,11 +6,21 @@ import os
 from db import get_connection
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
+from pypdf import PdfReader, PdfWriter
+import shutil
+import tempfile
+from pypdf.generic import NameObject, BooleanObject, DictionaryObject
 
 MINDEE_API_KEY = os.getenv("MINDEE_API_KEY", "your_mindee_api_key")
 mindee_client = Client(api_key=MINDEE_API_KEY)
 
 router = APIRouter()
+
+reader = PdfReader("erklaerung-zum-beschaeftigungsverhaeltnis_ba047549.pdf")
+fields = reader.get_fields()
+for field in fields:
+    print(field)
+
 
 @router.post("/employees/add")
 async def add_employee(file: UploadFile = File(...)):
@@ -199,4 +209,118 @@ def download_employee_pdf(employee_id: int):
             raise HTTPException(status_code=404, detail="Employee not found.")
         return emp
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"PDF generation error: {str(e)}") 
+        raise HTTPException(status_code=500, detail=f"PDF generation error: {str(e)}")
+
+@router.get("/employees/erklaerung-pdf/{employee_id}")
+def download_erklaerung_pdf(employee_id: int):
+    try:
+        # 1. Fetch employee data
+        conn = get_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT * FROM employees WHERE id = %s", (employee_id,))
+        emp = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        if not emp:
+            raise HTTPException(status_code=404, detail="Employee not found.")
+
+        # 2. Prepare temp file
+        template_path = "erklaerung-zum-beschaeftigungsverhaeltnis_ba047549.pdf"
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
+            temp_path = tmp.name
+        shutil.copy(template_path, temp_path)
+
+        # 3. Read PDF fields
+        reader = PdfReader(temp_path)
+        writer = PdfWriter()
+        writer.clone_document_from_reader(reader)
+        pdf_fields = reader.get_fields()
+
+        # Print possible values for the gender radio button for debugging
+        if 'rbtn_6_Geschlecht' in pdf_fields:
+            print('DEBUG: rbtn_6_Geschlecht field:', pdf_fields['rbtn_6_Geschlecht'])
+
+        # 4. Map DB fields to PDF fields (update this mapping as needed)
+        db_to_pdf = {
+            "vorname": "txtf_3_Vorname",
+            "geburtsname": "txtf_4_Nachname",
+            "geburtsdatum": "txtf_5_Geburtsdatum",
+            "geschlecht": "rbtn_6_Geschlecht",
+            "staatsangehoerigkeit": "txtf_7_Staatsangehoerigkeit",
+            # Add more mappings as you discover PDF field names and DB fields
+        }
+
+        # 5. Build data_map with only available data
+        data_map = {}
+        for db_field, pdf_field in db_to_pdf.items():
+            value = emp.get(db_field)
+            if value is not None:
+                # Special handling for Geschlecht radio button
+                if db_field == "geschlecht":
+                    geschlecht_map = {
+                        "männlich": "maennlich",
+                        "weiblich": "weiblich",
+                        "divers": "divers",
+                    }
+                    export_value = geschlecht_map.get(value)
+                    if export_value:
+                        data_map[pdf_field] = export_value
+                else:
+                    data_map[pdf_field] = str(value)
+
+        # 6. Fill the PDF only on pages with fields
+        for i, page in enumerate(writer.pages):
+            try:
+                writer.update_page_form_field_values(page, data_map)
+            except Exception as e:
+                print(f"[PDF] No fields to update on page {i+1}: {e}")
+                continue
+
+        # Explicitly set the value for the gender radio group in the AcroForm dictionary and widget appearance
+        if 'rbtn_6_Geschlecht' in data_map:
+            export_value = data_map['rbtn_6_Geschlecht']
+            # Map export value to widget state
+            state_map = {
+                "maennlich": "/0",
+                "weiblich": "/1",
+                "divers": "/2",
+            }
+            widget_state = state_map.get(export_value)
+            if "/AcroForm" in writer._root_object:
+                acroform = writer._root_object[NameObject("/AcroForm")]
+                acroform[NameObject("/V")] = NameObject(f"/{export_value}")
+                # Set the appearance state for the correct widget
+                if "/Fields" in acroform:
+                    for field in acroform[NameObject("/Fields")]:
+                        field_obj = field.get_object()
+                        if field_obj.get("/T") == "rbtn_6_Geschlecht" and "/Kids" in field_obj:
+                            for idx, kid in enumerate(field_obj[NameObject("/Kids")]):
+                                kid_obj = kid.get_object()
+                                # Set /AS only for the correct widget, others to /Off
+                                if widget_state and idx == ['maennlich', 'weiblich', 'divers'].index(export_value):
+                                    kid_obj[NameObject("/AS")] = NameObject(widget_state)
+                                else:
+                                    kid_obj[NameObject("/AS")] = NameObject("/Off")
+        # 7. Set NeedAppearances flag so data is visible in PDF viewers
+        if "/AcroForm" in writer._root_object:
+            acroform = writer._root_object[NameObject("/AcroForm")]
+            if not isinstance(acroform, DictionaryObject):
+                acroform = DictionaryObject(acroform)
+                writer._root_object[NameObject("/AcroForm")] = acroform
+            acroform[NameObject("/NeedAppearances")] = BooleanObject(True)
+        else:
+            writer._root_object.update({
+                NameObject("/AcroForm"): DictionaryObject({
+                    NameObject("/NeedAppearances"): BooleanObject(True)
+                })
+            })
+
+        with open(temp_path, "wb") as f_out:
+            writer.write(f_out)
+
+        # 8. Return the filled PDF
+        return FileResponse(temp_path, filename="erklaerung_beschaeftigung.pdf", media_type="application/pdf")
+    except Exception as e:
+        import traceback
+        print("[PDF ERROR]", traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"PDF generation error: {str(e)}")

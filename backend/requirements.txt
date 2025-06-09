@@ -4,4 +4,5 @@ mysql-connector-python
 requests
 python-dotenv
 mindee
-reportlab 
+reportlab
+pypdf
