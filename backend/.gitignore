@@ -10,6 +10,7 @@ __pycache__/
 # Environment
 .env
 .env.production
+
 **/.env*
 # VSCode
 .vscode/

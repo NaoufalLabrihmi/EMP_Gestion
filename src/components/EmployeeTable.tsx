@@ -54,8 +54,8 @@ export default function EmployeeTable() {
     { key: 'id_number', label: 'ID Number', className: 'min-w-[120px] flex-2' },
     { key: 'geburtsdatum', label: 'Geburtsdatum', className: 'min-w-[120px] flex-2' },
     { key: 'geschlecht', label: 'Geschlecht', className: 'min-w-[100px] flex-2' },
-    { key: 'staatsangehoerigkeit', label: 'Staatsangehörigkeit', className: 'min-w-[100px] flex-1' },
-    { key: 'personal_number', label: 'Personalnummer', className: 'min-w-[100px] flex-1' },
+    { key: 'personalfragebogen', label: 'Personalfragebogen', className: 'min-w-[120px] flex-2', isSpecial: 'personalfragebogen' },
+    { key: 'erklaerung_formular', label: 'Erklärung Formular', className: 'min-w-[120px] flex-2', isSpecial: 'erklaerung_formular' },
   ];
 
   const openAdd = () => {
@@ -225,30 +225,76 @@ export default function EmployeeTable() {
               ) : paginated.map((emp, idx) => (
                 <tr key={emp.id} className={`group even:bg-blue-50/60 odd:bg-white/80 hover:shadow-xl hover:scale-[1.01] transition-all duration-200 rounded-2xl ${editingId === emp.id ? 'ring-2 ring-cyan-400' : ''}`} style={{ fontSize: '1.08rem' }}>
                   <td className="px-3 py-2 text-blue-900 font-bold text-sm">{(page - 1) * PAGE_SIZE + idx + 1}</td>
-                  {editingId === emp.id ? (
-                    columns.map(col => (
-                      <td key={col.key} className={`px-3 py-2 align-top ${col.className || ''} group-hover:bg-cyan-50/60 transition rounded-xl`.trim()}>
-                        <input
-                          name={col.key}
-                          value={editForm[col.key] ?? ''}
-                          onChange={handleEditChange}
-                          className="px-2 py-1 rounded-lg border border-blue-200 w-full bg-white/90 shadow text-sm font-medium focus:ring-2 focus:ring-cyan-400"
-                          style={{ minWidth: 0 }}
-                        />
-                      </td>
-                    ))
-                  ) : (
-                    columns.map(col => (
-                      <td
-                        key={col.key}
-                        className={`px-3 py-2 text-blue-900 max-w-[140px] truncate cursor-pointer group-hover:bg-cyan-50/60 transition rounded-xl text-sm font-medium ${col.className || ''}`.trim()}
-                        title={emp[col.key] ?? ''}
-                        onClick={() => startEdit(emp)}
-                      >
-                        {emp[col.key] ?? ''}
-                      </td>
-                    ))
-                  )}
+                  {columns.map(col => {
+                    if (col.isSpecial === 'personalfragebogen') {
+                      return (
+                        <td key={col.key} className={`px-3 py-2 ${col.className || ''}`}>
+                          <div className="flex gap-2">
+                            <button
+                              className="p-2 rounded-xl bg-gradient-to-r from-blue-100 to-cyan-100 text-blue-700 shadow hover:scale-110 transition flex items-center justify-center"
+                              title="Download Personalfragebogen"
+                              onClick={() => handleDownload(emp)}
+                              disabled={loading}
+                            >
+                              <FaDownload />
+                            </button>
+                            <button
+                              onClick={() => navigate(`/employees/${emp.id}/edit`)}
+                              title="Edit Personalfragebogen"
+                              className="p-2 rounded-xl bg-gradient-to-r from-yellow-100 to-yellow-300 text-yellow-700 shadow hover:scale-110 transition flex items-center justify-center"
+                              disabled={loading}
+                            >
+                              <FaEdit />
+                            </button>
+                          </div>
+                        </td>
+                      );
+                    } else if (col.isSpecial === 'erklaerung_formular') {
+                      return (
+                        <td key={col.key} className={`px-3 py-2 ${col.className || ''}`}>
+                          <div className="flex gap-2">
+                            <button
+                              className="p-2 rounded-xl bg-gradient-to-r from-blue-100 to-cyan-100 text-blue-700 shadow hover:scale-110 transition flex items-center justify-center"
+                              title="Download Erklärung Formular"
+                              onClick={() => handleOfficialDownload(emp)}
+                              disabled={loading}
+                            >
+                              <FaDownload />
+                            </button>
+                            <button
+                              onClick={() => navigate(`/employees/${emp.id}/erklaerung-form`)}
+                              title="Edit Erklärung Formular"
+                              className="p-2 rounded-xl bg-gradient-to-r from-yellow-100 to-yellow-300 text-yellow-700 shadow hover:scale-110 transition flex items-center justify-center"
+                              disabled={loading}
+                            >
+                              <FaEdit />
+                            </button>
+                          </div>
+                        </td>
+                      );
+                    } else {
+                      return editingId === emp.id ? (
+                        <td key={col.key} className={`px-3 py-2 align-top ${col.className || ''} group-hover:bg-cyan-50/60 transition rounded-xl`.trim()}>
+                          <input
+                            name={col.key}
+                            value={editForm[col.key] ?? ''}
+                            onChange={handleEditChange}
+                            className="px-2 py-1 rounded-lg border border-blue-200 w-full bg-white/90 shadow text-sm font-medium focus:ring-2 focus:ring-cyan-400"
+                            style={{ minWidth: 0 }}
+                          />
+                        </td>
+                      ) : (
+                        <td
+                          key={col.key}
+                          className={`px-3 py-2 text-blue-900 max-w-[140px] truncate cursor-pointer group-hover:bg-cyan-50/60 transition rounded-xl text-sm font-medium ${col.className || ''}`.trim()}
+                          title={emp[col.key] ?? ''}
+                          onClick={() => startEdit(emp)}
+                        >
+                          {emp[col.key] ?? ''}
+                        </td>
+                      );
+                    }
+                  })}
                   <td className="px-3 py-2 flex gap-2 items-center justify-center group-hover:bg-cyan-50/60 transition rounded-xl">
                     {editingId === emp.id ? (
                       <>
@@ -256,26 +302,7 @@ export default function EmployeeTable() {
                         <button onClick={cancelEdit} title="Cancel" className="p-2 rounded-xl bg-gray-200 text-blue-700 shadow hover:bg-gray-300 transition flex items-center justify-center" disabled={loading}><FaTimes /></button>
                       </>
                     ) : (
-                      <>
-                        <button
-                          className="p-2 rounded-xl bg-gradient-to-r from-blue-100 to-cyan-100 text-blue-700 shadow hover:scale-110 transition flex items-center justify-center"
-                          title="Download Official PDF"
-                          onClick={() => handleOfficialDownload(emp)}
-                          disabled={loading}
-                        >
-                          <FaDownload />
-                        </button>
-                        <button
-                          className="p-2 rounded-xl bg-gradient-to-r from-blue-100 to-cyan-100 text-blue-700 shadow hover:scale-110 transition flex items-center justify-center"
-                          title="Download Custom PDF"
-                          onClick={() => handleDownload(emp)}
-                          disabled={loading}
-                        >
-                          <FaFilePdf />
-                        </button>
-                        <button onClick={() => navigate(`/employees/${emp.id}/edit`)} title="Edit" className="p-2 rounded-xl bg-gradient-to-r from-yellow-100 to-yellow-300 text-yellow-700 shadow hover:scale-110 transition flex items-center justify-center" disabled={loading}><FaEdit /></button>
-                        <button onClick={() => setConfirmDelete({ open: true, id: emp.id })} title="Delete" className="p-2 rounded-xl bg-gradient-to-r from-red-100 to-pink-100 text-red-600 shadow hover:scale-110 transition flex items-center justify-center" disabled={loading}><FaTrash /></button>
-                      </>
+                      <button onClick={() => setConfirmDelete({ open: true, id: emp.id })} title="Delete" className="p-2 rounded-xl bg-gradient-to-r from-red-100 to-pink-100 text-red-600 shadow hover:scale-110 transition flex items-center justify-center" disabled={loading}><FaTrash /></button>
                     )}
                   </td>
                 </tr>
@@ -295,28 +322,73 @@ export default function EmployeeTable() {
             <div className="flex items-center justify-between mb-2">
               <div className="text-blue-900 font-bold text-xl">{emp.vorname} {emp.geburtsname}</div>
               <div className="flex gap-2">
-                <button
-                  className="p-2 rounded-xl bg-gradient-to-r from-blue-100 to-cyan-100 text-blue-700 shadow hover:scale-110 transition flex items-center justify-center"
-                  title="Download Official PDF"
-                  onClick={() => handleOfficialDownload(emp)}
-                  disabled={loading}
-                >
-                  <FaDownload />
-                </button>
-                <button
-                  className="p-2 rounded-xl bg-gradient-to-r from-blue-100 to-cyan-100 text-blue-700 shadow hover:scale-110 transition flex items-center justify-center"
-                  title="Download Custom PDF"
-                  onClick={() => handleDownload(emp)}
-                  disabled={loading}
-                >
-                  <FaFilePdf />
-                </button>
-                <button onClick={() => navigate(`/employees/${emp.id}/edit`)} title="Edit" className="p-2 rounded-xl bg-gradient-to-r from-yellow-100 to-yellow-300 text-yellow-700 shadow hover:scale-110 transition flex items-center justify-center" disabled={loading}><FaEdit /></button>
-                <button onClick={() => setConfirmDelete({ open: true, id: emp.id })} title="Delete" className="p-2 rounded-xl bg-gradient-to-r from-red-100 to-pink-100 text-red-600 shadow hover:scale-110 transition flex items-center justify-center" disabled={loading}><FaTrash /></button>
+                {columns.filter(col => !col.isSpecial).map(col => (
+                  <button
+                    key={col.key}
+                    className="p-2 rounded-xl bg-gradient-to-r from-blue-100 to-cyan-100 text-blue-700 shadow hover:scale-110 transition flex items-center justify-center"
+                    title={col.label}
+                    onClick={() => startEdit(emp)}
+                    disabled={loading}
+                  >
+                    {col.label}
+                  </button>
+                ))}
+                {columns.filter(col => col.isSpecial).map(col => (
+                  <div key={col.key} className="flex gap-2">
+                    {col.isSpecial === 'personalfragebogen' && (
+                      <>
+                        <button
+                          className="p-2 rounded-xl bg-gradient-to-r from-blue-100 to-cyan-100 text-blue-700 shadow hover:scale-110 transition flex items-center justify-center"
+                          title="Download Personalfragebogen"
+                          onClick={() => handleDownload(emp)}
+                          disabled={loading}
+                        >
+                          <FaDownload />
+                        </button>
+                        <button
+                          onClick={() => navigate(`/employees/${emp.id}/edit`)}
+                          title="Edit Personalfragebogen"
+                          className="p-2 rounded-xl bg-gradient-to-r from-yellow-100 to-yellow-300 text-yellow-700 shadow hover:scale-110 transition flex items-center justify-center"
+                          disabled={loading}
+                        >
+                          <FaEdit />
+                        </button>
+                      </>
+                    )}
+                    {col.isSpecial === 'erklaerung_formular' && (
+                      <>
+                        <button
+                          className="p-2 rounded-xl bg-gradient-to-r from-blue-100 to-cyan-100 text-blue-700 shadow hover:scale-110 transition flex items-center justify-center"
+                          title="Download Erklärung Formular"
+                          onClick={() => handleOfficialDownload(emp)}
+                          disabled={loading}
+                        >
+                          <FaDownload />
+                        </button>
+                        <button
+                          onClick={() => navigate(`/employees/${emp.id}/erklaerung-form`)}
+                          title="Edit Erklärung Formular"
+                          className="p-2 rounded-xl bg-gradient-to-r from-yellow-100 to-yellow-300 text-yellow-700 shadow hover:scale-110 transition flex items-center justify-center"
+                          disabled={loading}
+                        >
+                          <FaEdit />
+                        </button>
+                      </>
+                    )}
+                  </div>
+                ))}
+                {editingId === emp.id ? (
+                  <>
+                    <button onClick={saveEdit} title="Save" className="p-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow hover:scale-110 transition flex items-center justify-center" disabled={loading}><FaCheck /></button>
+                    <button onClick={cancelEdit} title="Cancel" className="p-2 rounded-xl bg-gray-200 text-blue-700 shadow hover:bg-gray-300 transition flex items-center justify-center" disabled={loading}><FaTimes /></button>
+                  </>
+                ) : (
+                  <button onClick={() => setConfirmDelete({ open: true, id: emp.id })} title="Delete" className="p-2 rounded-xl bg-gradient-to-r from-red-100 to-pink-100 text-red-600 shadow hover:scale-110 transition flex items-center justify-center" disabled={loading}><FaTrash /></button>
+                )}
               </div>
             </div>
             <div className="grid grid-cols-2 gap-2 text-sm">
-              {columns.map(col => (
+              {columns.filter(col => !col.isSpecial).map(col => (
                 <div key={col.key} className="flex flex-col">
                   <span className="text-blue-400 font-semibold">{col.label}</span>
                   <span className="text-blue-900 font-medium truncate">{emp[col.key] ?? ''}</span>
