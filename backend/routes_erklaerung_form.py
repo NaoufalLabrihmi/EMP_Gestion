@@ -49,6 +49,8 @@ def download_erklaerung_pdf(employee_id: int):
         print('DEBUG: chbx_zuE_1v4 field:', pdf_fields.get('chbx_zuE_1v4'))
         print('DEBUG: chbx_46_Arbeitsentgelt_Stunde field:', pdf_fields.get('chbx_46_Arbeitsentgelt_Stunde'))
         print('DEBUG: chbx_46_Arbeitsentgelt_Monat field:', pdf_fields.get('chbx_46_Arbeitsentgelt_Monat'))
+        print('DEBUG: chbx_46_Arbeitsentgelt field:', pdf_fields.get('chbx_46_Arbeitsentgelt'))
+        print('DEBUG: FULL FIELD chbx_46_Arbeitsentgelt:', reader.get_fields()['chbx_46_Arbeitsentgelt'])
 
         # Print possible export values for rbtn_1_Erklaerung for debugging
         if 'rbtn_1_Erklaerung' in pdf_fields:
@@ -119,9 +121,8 @@ def download_erklaerung_pdf(employee_id: int):
             'arbeitnehmer_tariflich': 'rbtn_43_tarifliche_Arbeitsbedingungen',
             'tarifvertrag': 'txtf_44_Tarifvertrag',
             'entgeltgruppe': 'txtf_45_Entgeltgruppe',
-            'entgelt_pro_stunde': 'chbx_46_Arbeitsentgelt',
+            'entgelt_pro_typ': 'chbx_46_Arbeitsentgelt',
             'entgelt_pro_stunde_wert': 'txtf_46_Entgelt_pro_Stunde',
-            'entgelt_pro_monat': 'chbx_46_Arbeitsentgelt',
             'entgelt_pro_monat_wert': 'txtf_46_Entgelt_pro_Monat',
             'geldwerte_leistungen': 'chbx_47_zusaetzlich_geldwerte_Leistungen',
             'geldwerte_leistungen_art': 'txtf_48_Art_geldwerten_Leistung',
@@ -176,8 +177,6 @@ def download_erklaerung_pdf(employee_id: int):
             ('qualifikation_berufsausbildung', 'chbx_zuE_3v4'),
             ('qualifikation_sonstige', 'chbx_zuE_4v4'),
             ('qualifikation_nicht_erforderlich', 'chbx_34_keine_Ausbildung'),
-            ('entgelt_pro_stunde', 'chbx_46_Arbeitsentgelt'),
-            ('entgelt_pro_monat', 'chbx_46_Arbeitsentgelt'),
             ('geldwerte_leistungen', 'chbx_47_zusaetzlich_geldwerte_Leistungen'),
             ('sonstige_berechnung', 'chbx_47_sonstige_Berechnung'),
         ]
@@ -187,9 +186,16 @@ def download_erklaerung_pdf(employee_id: int):
                 data_map[pdf_field] = '/selektiert'
             else:
                 data_map[pdf_field] = '/Off'
-        print('DEBUG: arbeitgeber_email in data_map:', data_map.get('txtf_17_E-Mail'))
-        print('DEBUG: chbx_46_Arbeitsentgelt in data_map:', data_map.get('chbx_46_Arbeitsentgelt'))
-
+        # Set chbx_46_Arbeitsentgelt as a radio group: /0 for Stunde, /1 for Monat, /Off for none
+        entgelt_typ = merged.get('entgelt_pro_typ')
+        if entgelt_typ == 'pro Stunde':
+            arbeitsentgelt_state = '/0'
+        elif entgelt_typ == 'pro Monat':
+            arbeitsentgelt_state = '/1'
+        else:
+            arbeitsentgelt_state = '/Off'
+        data_map['chbx_46_Arbeitsentgelt'] = arbeitsentgelt_state
+        print('DEBUG: entgelt_pro_typ:', merged.get('entgelt_pro_typ'))
         # 7. Fill the PDF only on pages with fields
         for i, page in enumerate(writer.pages):
             try:
@@ -197,7 +203,27 @@ def download_erklaerung_pdf(employee_id: int):
             except Exception as e:
                 print(f"[PDF] No fields to update on page {i+1}: {e}")
                 continue
-
+        # Force radio appearance for chbx_46_Arbeitsentgelt
+        if "/AcroForm" in writer._root_object:
+            acroform = writer._root_object[NameObject("/AcroForm")]
+            if "/Fields" in acroform:
+                for field in acroform[NameObject("/Fields")]:
+                    field_obj = field.get_object()
+                    if field_obj.get("/T") == "chbx_46_Arbeitsentgelt":
+                        field_obj[NameObject("/V")] = NameObject(arbeitsentgelt_state)
+                        if "/Kids" in field_obj:
+                            for idx, kid in enumerate(field_obj[NameObject("/Kids")]):
+                                kid_obj = kid.get_object()
+                                if arbeitsentgelt_state == f"/{idx}":
+                                    kid_obj[NameObject("/AS")] = NameObject(f"/{idx}")
+                                else:
+                                    kid_obj[NameObject("/AS")] = NameObject("/Off")
+                        # Also set /AS on the parent field
+                        field_obj[NameObject("/AS")] = NameObject(arbeitsentgelt_state)
+                        # Set /V on AcroForm
+                        acroform[NameObject("/V")] = NameObject(arbeitsentgelt_state)
+            # Remove or set /NeedAppearances to False
+            acroform[NameObject("/NeedAppearances")] = BooleanObject(False)
         # Explicitly set the value for the gender radio group in the AcroForm dictionary and widget appearance
         if 'rbtn_6_Geschlecht' in data_map:
             export_value = data_map['rbtn_6_Geschlecht']
@@ -434,7 +460,7 @@ def get_erklaerung_form_for_edit(employee_id: int):
                 'urlaubsanspruch_tage',
                 # Section J
                 'arbeitgeber_tarifgebunden', 'arbeitnehmer_tariflich', 'tarifvertrag', 'entgeltgruppe',
-                'entgelt_pro_stunde', 'entgelt_pro_stunde_wert', 'entgelt_pro_monat', 'entgelt_pro_monat_wert',
+                'entgelt_pro_typ', 'entgelt_pro_stunde_wert', 'entgelt_pro_monat_wert',
                 'geldwerte_leistungen', 'geldwerte_leistungen_art', 'geldwerte_leistungen_hoehe',
                 'sonstige_berechnung', 'sonstige_berechnung_art', 'sonstige_berechnung_hoehe',
                 # Section K

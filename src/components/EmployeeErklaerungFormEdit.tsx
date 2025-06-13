@@ -733,19 +733,34 @@ export default function EmployeeErklaerungFormEdit() {
             <div className="bg-white/80 border border-blue-100 rounded-xl p-6 shadow flex flex-col gap-4">
               <h4 className="text-lg font-semibold text-blue-800 mb-2">Höhe und Berechnungsart des Arbeitsentgelts</h4>
               <div className="flex flex-col gap-4">
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    id="entgelt_pro_stunde"
-                    name="entgelt_pro_stunde"
-                    checked={form['entgelt_pro_stunde'] === '1' || form['entgelt_pro_stunde'] === 1 || form['entgelt_pro_stunde'] === true}
-                    onChange={e => setForm((f: any) => ({ ...f, entgelt_pro_stunde: e.target.checked ? '1' : '0' }))}
-                    className="accent-cyan-500 w-4 h-4"
-                  />
-                  <label className="text-sm font-medium text-blue-700" htmlFor="entgelt_pro_stunde">pro Stunde Entgelt (brutto in Euro)</label>
+                <label className="text-blue-700 font-semibold mb-1 text-sm">Höhe und Berechnungsart des Arbeitsentgelts</label>
+                <div className="flex items-center gap-6">
+                  <label className="flex items-center gap-2 text-sm font-medium text-blue-700">
+                    <input
+                      type="radio"
+                      id="entgelt_pro_typ_stunde"
+                      name="entgelt_pro_typ"
+                      value="pro Stunde"
+                      checked={form['entgelt_pro_typ'] === 'pro Stunde'}
+                      onChange={handleChange}
+                      className="accent-cyan-500 w-4 h-4"
+                    />
+                    pro Stunde Entgelt (brutto in Euro)
+                  </label>
+                  <label className="flex items-center gap-2 text-sm font-medium text-blue-700">
+                    <input
+                      type="radio"
+                      id="entgelt_pro_typ_monat"
+                      name="entgelt_pro_typ"
+                      value="pro Monat"
+                      checked={form['entgelt_pro_typ'] === 'pro Monat'}
+                      onChange={handleChange}
+                      className="accent-cyan-500 w-4 h-4"
+                    />
+                    pro Monat Entgelt (brutto in Euro)
+                  </label>
                 </div>
-                
-                {(form['entgelt_pro_stunde'] === '1' || form['entgelt_pro_stunde'] === 1 || form['entgelt_pro_stunde'] === true) && (
+                {form['entgelt_pro_typ'] === 'pro Stunde' && (
                   <div className="flex flex-col gap-1 ml-6 md:w-1/3">
                     <input
                       type="number"
@@ -758,20 +773,7 @@ export default function EmployeeErklaerungFormEdit() {
                     />
                   </div>
                 )}
-                
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    id="entgelt_pro_monat"
-                    name="entgelt_pro_monat"
-                    checked={form['entgelt_pro_monat'] === '1' || form['entgelt_pro_monat'] === 1 || form['entgelt_pro_monat'] === true}
-                    onChange={e => setForm((f: any) => ({ ...f, entgelt_pro_monat: e.target.checked ? '1' : '0' }))}
-                    className="accent-cyan-500 w-4 h-4"
-                  />
-                  <label className="text-sm font-medium text-blue-700" htmlFor="entgelt_pro_monat">pro Monat Entgelt (brutto in Euro)</label>
-                </div>
-                
-                {(form['entgelt_pro_monat'] === '1' || form['entgelt_pro_monat'] === 1 || form['entgelt_pro_monat'] === true) && (
+                {form['entgelt_pro_typ'] === 'pro Monat' && (
                   <div className="flex flex-col gap-1 ml-6 md:w-1/3">
                     <input
                       type="number"
