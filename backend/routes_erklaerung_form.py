@@ -52,6 +52,22 @@ def download_erklaerung_pdf(employee_id: int):
         print('DEBUG: chbx_46_Arbeitsentgelt field:', pdf_fields.get('chbx_46_Arbeitsentgelt'))
         print('DEBUG: FULL FIELD chbx_46_Arbeitsentgelt:', reader.get_fields()['chbx_46_Arbeitsentgelt'])
 
+        # Debug: print /AP and /Opt for chbx_46_Arbeitsentgelt
+        field = pdf_fields.get('chbx_46_Arbeitsentgelt')
+        print('DEBUG: chbx_46_Arbeitsentgelt /AP:', field.get('/AP') if field else None)
+        print('DEBUG: chbx_46_Arbeitsentgelt /Opt:', field.get('/Opt') if field else None)
+
+        # Debug: print /AP and /AS for each kid of chbx_46_Arbeitsentgelt
+        if field and '/Kids' in field:
+            for idx, kid in enumerate(field['/Kids']):
+                try:
+                    kid_obj = kid.get_object()
+                    print(f'DEBUG: chbx_46_Arbeitsentgelt kid {idx} /AP:', kid_obj.get('/AP'))
+                    print(f'DEBUG: chbx_46_Arbeitsentgelt kid {idx} /V:', kid_obj.get('/V'))
+                    print(f'DEBUG: chbx_46_Arbeitsentgelt kid {idx} /AS:', kid_obj.get('/AS'))
+                except Exception as e:
+                    print(f'Error reading kid {idx}:', e)
+
         # Print possible export values for rbtn_1_Erklaerung for debugging
         if 'rbtn_1_Erklaerung' in pdf_fields:
             print('DEBUG: rbtn_1_Erklaerung field:', pdf_fields['rbtn_1_Erklaerung'])
@@ -195,7 +211,6 @@ def download_erklaerung_pdf(employee_id: int):
         else:
             arbeitsentgelt_state = '/Off'
         data_map['chbx_46_Arbeitsentgelt'] = arbeitsentgelt_state
-        print('DEBUG: entgelt_pro_typ:', merged.get('entgelt_pro_typ'))
         # 7. Fill the PDF only on pages with fields
         for i, page in enumerate(writer.pages):
             try:
@@ -203,27 +218,31 @@ def download_erklaerung_pdf(employee_id: int):
             except Exception as e:
                 print(f"[PDF] No fields to update on page {i+1}: {e}")
                 continue
-        # Force radio appearance for chbx_46_Arbeitsentgelt
+        # Set /V and /AS to the correct export value for chbx_46_Arbeitsentgelt
         if "/AcroForm" in writer._root_object:
             acroform = writer._root_object[NameObject("/AcroForm")]
             if "/Fields" in acroform:
                 for field in acroform[NameObject("/Fields")]:
                     field_obj = field.get_object()
                     if field_obj.get("/T") == "chbx_46_Arbeitsentgelt":
-                        field_obj[NameObject("/V")] = NameObject(arbeitsentgelt_state)
+                        entgelt_typ = merged.get('entgelt_pro_typ')
                         if "/Kids" in field_obj:
-                            for idx, kid in enumerate(field_obj[NameObject("/Kids")]):
+                            kids = field_obj[NameObject("/Kids")]
+                            for idx, kid in enumerate(kids):
                                 kid_obj = kid.get_object()
-                                if arbeitsentgelt_state == f"/{idx}":
-                                    kid_obj[NameObject("/AS")] = NameObject(f"/{idx}")
+                                if idx == 0:
+                                    export_value = "/pro Stunde"
+                                elif idx == 1:
+                                    export_value = "/pro Monat"
+                                else:
+                                    export_value = "/Off"
+                                if (entgelt_typ == 'pro Stunde' and idx == 0) or (entgelt_typ == 'pro Monat' and idx == 1):
+                                    kid_obj[NameObject("/AS")] = NameObject(export_value)
+                                    field_obj[NameObject("/V")] = NameObject(export_value)
                                 else:
                                     kid_obj[NameObject("/AS")] = NameObject("/Off")
-                        # Also set /AS on the parent field
-                        field_obj[NameObject("/AS")] = NameObject(arbeitsentgelt_state)
-                        # Set /V on AcroForm
-                        acroform[NameObject("/V")] = NameObject(arbeitsentgelt_state)
-            # Remove or set /NeedAppearances to False
-            acroform[NameObject("/NeedAppearances")] = BooleanObject(False)
+                        else:
+                            field_obj[NameObject("/V")] = NameObject("/Off")
         # Explicitly set the value for the gender radio group in the AcroForm dictionary and widget appearance
         if 'rbtn_6_Geschlecht' in data_map:
             export_value = data_map['rbtn_6_Geschlecht']
@@ -392,19 +411,11 @@ def download_erklaerung_pdf(employee_id: int):
                                             kid_obj[NameObject("/AS")] = NameObject(widget_state)
                                         else:
                                             kid_obj[NameObject("/AS")] = NameObject("/Off")
-        # 8. Set NeedAppearances flag so data is visible in PDF viewers
+        # 8. Remove NeedAppearances flag so original checkmark is used
         if "/AcroForm" in writer._root_object:
             acroform = writer._root_object[NameObject("/AcroForm")]
-            if not isinstance(acroform, DictionaryObject):
-                acroform = DictionaryObject(acroform)
-                writer._root_object[NameObject("/AcroForm")] = acroform
-            acroform[NameObject("/NeedAppearances")] = BooleanObject(True)
-        else:
-            writer._root_object.update({
-                NameObject("/AcroForm"): DictionaryObject({
-                    NameObject("/NeedAppearances"): BooleanObject(True)
-                })
-            })
+            if NameObject("/NeedAppearances") in acroform:
+                del acroform[NameObject("/NeedAppearances")]
 
         with open(temp_path, "wb") as f_out:
             writer.write(f_out)
