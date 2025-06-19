@@ -6,3 +6,4 @@ python-dotenv
 mindee
 reportlab
 pypdf
+python-docx

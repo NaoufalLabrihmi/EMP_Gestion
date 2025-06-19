@@ -1,4 +1,4 @@
-from fastapi import APIRouter, File, UploadFile, HTTPException, Request
+from fastapi import APIRouter, File, UploadFile, HTTPException, Request, Body
 from fastapi.responses import JSONResponse, FileResponse
 import tempfile
 from mindee import Client, product, AsyncPredictResponse
@@ -10,6 +10,8 @@ from pypdf import PdfReader, PdfWriter
 import shutil
 import tempfile
 from pypdf.generic import NameObject, BooleanObject, DictionaryObject
+from docx import Document
+import datetime
 
 MINDEE_API_KEY = os.getenv("MINDEE_API_KEY", "your_mindee_api_key")
 mindee_client = Client(api_key=MINDEE_API_KEY)
@@ -206,4 +208,187 @@ def download_employee_pdf(employee_id: int):
         return emp
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"PDF generation error: {str(e)}")
+
+@router.get("/arbeitsvertrag/list")
+def arbeitsvertrag_list():
+    try:
+        conn = get_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute('''
+            SELECT
+                e.id AS id,
+                CONCAT(e.vorname, ' ', e.geburtsname) AS name,
+                e.strasse_hausnummer AS strasse,
+                e.plz_ort AS plz_ort,
+                e.land AS land,
+                e.contract_type AS contract_type,
+                f.beschaeftigung_beginn AS beginn,
+                f.beschaeftigung_berufsbezeichnung AS position,
+                f.arbeitszeit_stunden AS arbeitszeit_stunden,
+                f.entgelt_pro_monat_wert AS gehalt,
+                f.urlaubsanspruch_tage AS urlaub
+            FROM employees e
+            JOIN erklaerung_form f ON e.id = f.employee_id
+        ''')
+        rows = cursor.fetchall()
+        # Replace None with '' for frontend compatibility
+        for row in rows:
+            for k, v in row.items():
+                if v is None:
+                    row[k] = ''
+        cursor.close()
+        conn.close()
+        return rows
+    except Exception as e:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
+@router.patch("/arbeitsvertrag/edit/{employee_id}")
+def arbeitsvertrag_edit(employee_id: int, data: dict = Body(...)):
+    try:
+        conn = get_connection()
+        cursor = conn.cursor(dictionary=True)
+        # Employees table fields
+        emp_fields = {}
+        if 'name' in data:
+            parts = data['name'].split(' ', 1)
+            emp_fields['vorname'] = parts[0]
+            emp_fields['geburtsname'] = parts[1] if len(parts) > 1 else ''
+        for f in ['strasse', 'plz_ort', 'land', 'contract_type']:
+            if f in data:
+                dbf = 'strasse_hausnummer' if f == 'strasse' else f
+                emp_fields[dbf] = data[f]
+        if emp_fields:
+            sets = ', '.join([f"{k} = %s" for k in emp_fields])
+            vals = list(emp_fields.values()) + [employee_id]
+            cursor.execute(f"UPDATE employees SET {sets} WHERE id = %s", vals)
+        # Erklaerung_form table fields
+        erk_fields = {}
+        if 'beginn' in data:
+            erk_fields['beschaeftigung_beginn'] = data['beginn']
+        if 'position' in data:
+            erk_fields['beschaeftigung_berufsbezeichnung'] = data['position']
+        if 'arbeitszeit_stunden' in data:
+            erk_fields['arbeitszeit_stunden'] = data['arbeitszeit_stunden']
+        if 'gehalt' in data:
+            erk_fields['entgelt_pro_monat_wert'] = data['gehalt']
+        if 'urlaub' in data:
+            erk_fields['urlaubsanspruch_tage'] = data['urlaub']
+        if erk_fields:
+            sets = ', '.join([f"{k} = %s" for k in erk_fields])
+            vals = list(erk_fields.values()) + [employee_id]
+            cursor.execute(f"UPDATE erklaerung_form SET {sets} WHERE employee_id = %s", vals)
+        conn.commit()
+        # Return updated row
+        cursor.execute('''
+            SELECT
+                e.id AS id,
+                CONCAT(e.vorname, ' ', e.geburtsname) AS name,
+                e.strasse_hausnummer AS strasse,
+                e.plz_ort AS plz_ort,
+                e.land AS land,
+                e.contract_type AS contract_type,
+                f.beschaeftigung_beginn AS beginn,
+                f.beschaeftigung_berufsbezeichnung AS position,
+                f.arbeitszeit_stunden AS arbeitszeit_stunden,
+                f.entgelt_pro_monat_wert AS gehalt,
+                f.urlaubsanspruch_tage AS urlaub
+            FROM employees e
+            JOIN erklaerung_form f ON e.id = f.employee_id
+            WHERE e.id = %s
+        ''', (employee_id,))
+        row = cursor.fetchone()
+        for k, v in row.items():
+            if v is None:
+                row[k] = ''
+        cursor.close()
+        conn.close()
+        return row
+    except Exception as e:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
+@router.get("/arbeitsvertrag/download/{employee_id}")
+def arbeitsvertrag_download(employee_id: int):
+    try:
+        conn = get_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute('''
+            SELECT
+                e.id AS id,
+                CONCAT(e.vorname, ' ', e.geburtsname) AS name,
+                e.strasse_hausnummer AS strasse,
+                e.plz_ort AS plz_ort,
+                e.land AS land,
+                e.contract_type AS contract_type,
+                f.beschaeftigung_beginn AS beginn,
+                f.beschaeftigung_berufsbezeichnung AS position,
+                f.arbeitszeit_stunden AS arbeitszeit_stunden,
+                f.entgelt_pro_monat_wert AS gehalt,
+                f.urlaubsanspruch_tage AS urlaub
+            FROM employees e
+            JOIN erklaerung_form f ON e.id = f.employee_id
+            WHERE e.id = %s
+        ''', (employee_id,))
+        row = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        if not row:
+            raise HTTPException(status_code=404, detail="Employee/contract not found.")
+        # Allow download for all contract types and select template accordingly
+        contract_type = row['contract_type']
+        if not contract_type:
+            raise HTTPException(status_code=400, detail="Vertragsart nicht gesetzt.")
+        # Map contract type to template file
+        template_map = {
+            'TEILZEITTÄTIGKEIT': 'Arbeitsvertrag Teilzeit.docx',
+            'VOLLZEITTÄTIGKEIT': 'Arbeitsvertrag fuer Arbeitnehmer - Vollzeit .docx',
+            'TEILZEITTÄTIGKEIT - "MINIJOB"': 'Minijob-Vertrag.docx',
+        }
+        template_file = template_map.get(contract_type)
+        if not template_file:
+            raise HTTPException(status_code=400, detail=f"Kein Template für Vertragsart: {contract_type}")
+        template_path = os.path.join(os.path.dirname(__file__), 'filesDoc', template_file)
+        if not os.path.exists(template_path):
+            raise HTTPException(status_code=500, detail=f"Template nicht gefunden: {template_file}")
+        doc = Document(template_path)
+        # Replace placeholders
+        def to_str(val):
+            if isinstance(val, (datetime.date, datetime.datetime)):
+                return val.strftime("%d.%m.%Y")
+            return str(val) if val is not None else ''
+        replacements = {
+            '{{name}}': to_str(row['name']),
+            '{{strasse}}': to_str(row['strasse']),
+            '{{plz_ort}}': to_str(row['plz_ort']),
+            '{{land}}': to_str(row['land']),
+            '{{beginn}}': to_str(row['beginn']),
+            '{{position}}': to_str(row['position']),
+            '{{arbeitszeit_stunden}}': to_str(row.get('arbeitszeit_stunden', '')),
+            '{{gehalt}}': to_str(row['gehalt']),
+            '{{urlaub}}': to_str(row['urlaub']),
+        }
+        # Replace in paragraphs (handles split runs)
+        for p in doc.paragraphs:
+            for k, v in replacements.items():
+                if k in p.text:
+                    p.text = p.text.replace(k, v)
+        # Replace in tables
+        for table in doc.tables:
+            for row_cells in table.rows:
+                for cell in row_cells.cells:
+                    for k, v in replacements.items():
+                        if k in cell.text:
+                            cell.text = cell.text.replace(k, v)
+        # Save to temp file
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.docx') as tmp:
+            doc.save(tmp.name)
+            tmp_path = tmp.name
+        # Return file
+        filename = f"Arbeitsvertrag_{contract_type}_{row['name'].replace(' ', '_')}.docx"
+        return FileResponse(tmp_path, filename=filename, media_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document', headers={"Content-Disposition": f"attachment; filename={filename}"})
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Docx generation error: {str(e)}")
 

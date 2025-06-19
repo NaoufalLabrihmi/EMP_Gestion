@@ -6,6 +6,7 @@ import ChartSection from './components/ChartSection';
 import Employees from './pages/Employees';
 import EmployeeEdit from './components/EmployeeEdit';
 import EmployeeErklaerungFormEdit from './components/EmployeeErklaerungFormEdit';
+import ArbeitsvertragPage from './pages/Arbeitsvertrag';
 
 const stats = [
   { label: 'Total Users', value: '1,234' },
@@ -59,6 +60,7 @@ export default function App() {
           <Route path="/employees" element={<Employees />} />
           <Route path="/employees/:id/edit" element={<EmployeeEdit />} />
           <Route path="/employees/:id/erklaerung-form" element={<EmployeeErklaerungFormEdit />} />
+          <Route path="/arbeitsvertrag" element={<ArbeitsvertragPage />} />
         </Routes>
       </div>
     </div>

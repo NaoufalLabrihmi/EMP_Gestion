@@ -9,7 +9,7 @@ const nav = [
   { name: 'Employees', path: '/employees', icon: (
     <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M17 20h5v-2a4 4 0 0 0-3-3.87M9 20H4v-2a4 4 0 0 1 3-3.87M16 3.13a4 4 0 0 1 0 7.75M8 3.13a4 4 0 0 0 0 7.75" /></svg>
   ) },
-  { name: 'Projects', icon: (
+  { name: 'ARBEITSVERTRAG FÜR', path: '/arbeitsvertrag', icon: (
     <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M3 7v4a1 1 0 0 0 1 1h3v9a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-9h3a1 1 0 0 0 1-1V7" /></svg>
   ) },
   { name: 'Settings', icon: (
