@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import { API_BASE_URL } from '../lib/api';
-import { FaCheck, FaDownload, FaChevronLeft, FaChevronRight, FaPlus, FaTimes, FaTrash, FaEdit, FaFilePdf } from 'react-icons/fa';
+import { FaCheck, FaDownload, FaChevronLeft, FaChevronRight, FaPlus, FaTimes, FaTrash, FaEdit, FaFilePdf, FaFileAlt } from 'react-icons/fa';
 import { pdf } from '@react-pdf/renderer';
 import EmployeePDF from './EmployeePDF';
 import { useNavigate } from 'react-router-dom';
@@ -56,6 +56,7 @@ export default function EmployeeTable() {
     { key: 'geschlecht', label: 'Geschlecht', className: 'min-w-[100px] flex-2' },
     { key: 'personalfragebogen', label: 'Personalfragebogen', className: 'min-w-[120px] flex-2', isSpecial: 'personalfragebogen' },
     { key: 'erklaerung_formular', label: 'Erklärung Formular', className: 'min-w-[120px] flex-2', isSpecial: 'erklaerung_formular' },
+    { key: 'einkommensbescheinigung', label: 'Einkommensbescheinigung', className: 'min-w-[120px] flex-2', isSpecial: 'einkommensbescheinigung' },
   ];
 
   const openAdd = () => {
@@ -272,6 +273,18 @@ export default function EmployeeTable() {
                           </div>
                         </td>
                       );
+                    } else if (col.isSpecial === 'einkommensbescheinigung') {
+                      return (
+                        <td key={col.key} className={`px-3 py-2 ${col.className || ''}`}>
+                          <button
+                            className="p-2 rounded-xl bg-gradient-to-r from-green-100 to-blue-100 text-green-700 shadow hover:scale-110 transition flex items-center justify-center"
+                            title="Einkommensbescheinigung anzeigen"
+                            onClick={() => navigate(`/einkommensbescheinigung?employeeId=${emp.id}`)}
+                          >
+                            <FaFilePdf className="w-5 h-5" />
+                          </button>
+                        </td>
+                      );
                     } else {
                       return editingId === emp.id ? (
                         <td key={col.key} className={`px-3 py-2 align-top ${col.className || ''} group-hover:bg-cyan-50/60 transition rounded-xl`.trim()}>
@@ -374,6 +387,15 @@ export default function EmployeeTable() {
                           <FaEdit />
                         </button>
                       </>
+                    )}
+                    {col.isSpecial === 'einkommensbescheinigung' && (
+                      <button
+                        className="p-2 rounded-xl bg-gradient-to-r from-green-100 to-blue-100 text-green-700 shadow hover:scale-110 transition flex items-center justify-center"
+                        title="Einkommensbescheinigung anzeigen"
+                        onClick={() => navigate(`/einkommensbescheinigung?employeeId=${emp.id}`)}
+                      >
+                        <FaFilePdf className="w-5 h-5" />
+                      </button>
                     )}
                   </div>
                 ))}

@@ -736,15 +736,15 @@ export default function EmployeeErklaerungFormEdit() {
                 <label className="text-blue-700 font-semibold mb-1 text-sm">Höhe und Berechnungsart des Arbeitsentgelts</label>
                 <div className="flex items-center gap-6">
                   <label className="flex items-center gap-2 text-sm font-medium text-blue-700">
-                    <input
+                  <input
                       type="radio"
                       id="entgelt_pro_typ_stunde"
                       name="entgelt_pro_typ"
                       value="pro Stunde"
                       checked={form['entgelt_pro_typ'] === 'pro Stunde'}
                       onChange={handleChange}
-                      className="accent-cyan-500 w-4 h-4"
-                    />
+                    className="accent-cyan-500 w-4 h-4"
+                  />
                     pro Stunde Entgelt (brutto in Euro)
                   </label>
                   <label className="flex items-center gap-2 text-sm font-medium text-blue-700">

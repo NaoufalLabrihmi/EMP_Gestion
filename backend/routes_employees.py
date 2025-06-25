@@ -12,6 +12,9 @@ import tempfile
 from pypdf.generic import NameObject, BooleanObject, DictionaryObject
 from docx import Document
 import datetime
+import pdfplumber
+import re
+from pdf_extract_utils import extract_einkommensbescheinigung_fields
 
 MINDEE_API_KEY = os.getenv("MINDEE_API_KEY", "your_mindee_api_key")
 mindee_client = Client(api_key=MINDEE_API_KEY)
@@ -391,4 +394,6 @@ def arbeitsvertrag_download(employee_id: int):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Docx generation error: {str(e)}")
+
+
 

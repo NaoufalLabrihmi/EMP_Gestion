@@ -1,4 +1,5 @@
 import React from 'react';
+import { FaFilePdf, FaUpload } from 'react-icons/fa';
 
 export function SunIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
@@ -48,4 +49,6 @@ export function UserCircleIcon(props: React.SVGProps<SVGSVGElement>) {
       <path d="M6 20v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2" stroke="currentColor" />
     </svg>
   );
-} 
+}
+
+export { FaFilePdf, FaUpload }; 
