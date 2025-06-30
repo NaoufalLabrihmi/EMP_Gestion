@@ -1,4 +1,4 @@
-from fastapi import APIRouter, File, UploadFile, HTTPException, Query, status
+from fastapi import APIRouter, File, UploadFile, HTTPException, Query, status, Body
 from db import get_connection
 from pdf_extract_utils import extract_einkommensbescheinigung_fields
 import tempfile
@@ -73,3 +73,34 @@ def list_einkommensbescheinigung(employeeId: int = Query(...)):
         logging.error(f"Database error: {e}")
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
+@router.get("/employees/{employee_id}")
+def get_employee(employee_id: int):
+    try:
+        conn = get_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT * FROM employees WHERE id = %s", (employee_id,))
+        employee = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        if not employee:
+            raise HTTPException(status_code=404, detail="Employee not found")
+        return employee
+    except Exception as e:
+        logging.error(f"Database error: {e}")
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
+@router.get('/erklaerung_form/{employee_id}')
+def get_erklaerung_form(employee_id: int):
+    try:
+        conn = get_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute('SELECT * FROM erklaerung_form WHERE employee_id = %s ORDER BY id DESC LIMIT 1', (employee_id,))
+        row = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        if not row:
+            raise HTTPException(status_code=404, detail='Not found')
+        return row
+    except Exception as e:
+        logging.error(f"Database error: {e}")
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")

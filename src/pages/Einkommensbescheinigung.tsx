@@ -1,8 +1,11 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import axios from 'axios';
-import { FaFilePdf, FaUpload } from 'react-icons/fa';
+import { FaFilePdf, FaUpload, FaDownload } from 'react-icons/fa';
 import { API_BASE_URL } from '../lib/api';
+import { PDFDownloadLink } from '@react-pdf/renderer';
+import EinkommensbescheinigungPDFDocument from '../components/EinkommensbescheinigungPDFDocument';
+import dayjs from 'dayjs';
 
 const API_BASE = API_BASE_URL || window.location.origin;
 
@@ -31,7 +34,20 @@ const EinkommensbescheinigungPage = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [employeeName, setEmployeeName] = useState('');
+  const [employee, setEmployee] = useState<any>(null);
+  const [einkommensbescheinigung, setEinkommensbescheinigung] = useState<any>(null);
+  const [erklaerungForm, setErklaerungForm] = useState<any>(null);
+  const [monatlichGleich, setMonatlichGleich] = useState<'Ja' | 'Nein' | ''>('');
+  const [branche, setBranche] = useState('');
   const fileInputRef = useRef(null);
+  const [startMonth, setStartMonth] = useState('');
+  const [startYear, setStartYear] = useState('');
+  const [numMonths, setNumMonths] = useState(6);
+  const [entgeltMonate, setEntgeltMonate] = useState<any[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [filterMonth, setFilterMonth] = useState('');
+  const [filterYear, setFilterYear] = useState('');
+  const [company, setCompany] = useState<any>(null);
 
   const fetchEmployeeName = async () => {
     if (!employeeId) return;
@@ -44,6 +60,40 @@ const EinkommensbescheinigungPage = () => {
       }
     } catch {
       setEmployeeName('');
+    }
+  };
+
+  const fetchEmployee = async () => {
+    if (!employeeId) return;
+    try {
+      const res = await axios.get(`${API_BASE}/employees/${employeeId}`);
+      setEmployee(res.data);
+    } catch {
+      setEmployee(null);
+    }
+  };
+
+  const fetchEinkommensbescheinigung = async () => {
+    if (!employeeId) return;
+    try {
+      const res = await axios.get(`${API_BASE}/einkommensbescheinigung/list?employeeId=${employeeId}`);
+      if (Array.isArray(res.data) && res.data.length > 0) {
+        setEinkommensbescheinigung(res.data[0]); // latest
+      } else {
+        setEinkommensbescheinigung(null);
+      }
+    } catch {
+      setEinkommensbescheinigung(null);
+    }
+  };
+
+  const fetchErklaerungForm = async () => {
+    if (!employeeId) return;
+    try {
+      const res = await axios.get(`${API_BASE}/erklaerung_form/${employeeId}`);
+      setErklaerungForm(res.data);
+    } catch {
+      setErklaerungForm(null);
     }
   };
 
@@ -61,11 +111,54 @@ const EinkommensbescheinigungPage = () => {
     setLoading(false);
   };
 
+  const fetchCompany = async () => {
+    try {
+      const res = await axios.get(`${API_BASE}/company`);
+      setCompany(res.data);
+    } catch {
+      setCompany(null);
+    }
+  };
+
+  // Helper to get available months/years from einkommensbescheinigung
+  const availableMonths = einkommensbescheinigung ? data.map((row: any) => ({ monat: row.monat, jahr: row.jahr })) : [];
+  const uniqueYears = Array.from(new Set(data.map((row: any) => row.jahr))).sort((a, b) => b - a);
+  const uniqueMonths = Array.from(new Set(data.map((row: any) => row.monat))).sort();
+
+  // When user selects start month/year/numMonths, update entgeltMonate
+  useEffect(() => {
+    if (!startMonth || !startYear || !numMonths) {
+      setEntgeltMonate([]);
+      return;
+    }
+    // Build array of {monat, jahr} for the selected range
+    const months: { monat: string, jahr: string }[] = [];
+    let m = parseInt(startMonth, 10);
+    let y = parseInt(startYear, 10);
+    for (let i = 0; i < numMonths; i++) {
+      months.push({ monat: m.toString().padStart(2, '0'), jahr: y.toString() });
+      m++;
+      if (m > 12) { m = 1; y++; }
+    }
+    // Find matching rows in data
+    const selected = months.map(({ monat, jahr }) =>
+      data.find((row: any) => row.monat === monat && row.jahr === jahr) || { monat, jahr }
+    );
+    setEntgeltMonate(selected);
+  }, [startMonth, startYear, numMonths, data]);
+
   useEffect(() => {
     fetchEmployeeName();
+    fetchEmployee();
+    fetchEinkommensbescheinigung();
+    fetchErklaerungForm();
     fetchData();
+    fetchCompany();
     // eslint-disable-next-line
   }, [employeeId]);
+
+  // Only enable download if we have at least 1 entgeltMonate and all other required fields
+  const canDownload = !!employee && !!einkommensbescheinigung && !!erklaerungForm && !!monatlichGleich && branche.trim().length > 0 && entgeltMonate.length > 0;
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || !e.target.files[0]) return;
@@ -87,6 +180,23 @@ const EinkommensbescheinigungPage = () => {
     if (fileInputRef.current) (fileInputRef.current as HTMLInputElement).value = '';
   };
 
+  // Get unique months/years for filter dropdowns
+  const allMonths = Array.from(new Set(data.map((row: any) => row.monat))).sort();
+  const allYears = Array.from(new Set(data.map((row: any) => row.jahr))).sort((a, b) => b - a);
+
+  // Filtered data
+  const filteredData = data.filter((row: any) => {
+    return (!filterMonth || row.monat === filterMonth) && (!filterYear || row.jahr === filterYear);
+  });
+
+  // Pagination logic
+  const rowsPerPage = 7;
+  const totalPages = Math.ceil(filteredData.length / rowsPerPage);
+  const paginatedData = filteredData.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
+
+  // Reset to page 1 when filters change
+  useEffect(() => { setCurrentPage(1); }, [filterMonth, filterYear]);
+
   if (!employeeId) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] text-xl text-red-600 font-bold">
@@ -99,15 +209,37 @@ const EinkommensbescheinigungPage = () => {
     <div className="flex flex-col md:flex-row gap-8 p-6">
       {/* Table Section */}
       <div className="flex-1 bg-white rounded-xl shadow p-6">
-        <h2 className="text-2xl md:text-3xl font-bold text-blue-800 mb-6 flex flex-wrap items-center gap-2 font-sans">
-          <FaFilePdf className="text-green-600" />
-          <span>Einkommensbescheinigung</span>
-          {employeeName && (
-            <span className="ml-2 text-2xl md:text-3xl font-bold text-cyan-700 font-sans whitespace-nowrap">
-              für&nbsp;{employeeName}
-            </span>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-2xl md:text-3xl font-bold text-blue-800 flex flex-wrap items-center gap-2 font-sans">
+            <FaFilePdf className="text-green-600" />
+            <span>Einkommensbescheinigung</span>
+            {employeeName && (
+              <span className="ml-2 text-2xl md:text-3xl font-bold text-cyan-700 font-sans whitespace-nowrap">
+                für&nbsp;{employeeName}
+              </span>
+            )}
+          </h2>
+        </div>
+        {/* Filters */}
+        <div className="flex flex-wrap gap-4 mb-4 items-center bg-blue-50 rounded-lg px-4 py-2">
+          <label className="font-semibold text-blue-900">Monat:</label>
+          <select value={filterMonth} onChange={e => setFilterMonth(e.target.value)} className="border rounded px-2 py-1">
+            <option value="">Alle</option>
+            {allMonths.map(m => (
+              <option key={m} value={m}>{m}</option>
+            ))}
+          </select>
+          <label className="font-semibold text-blue-900">Jahr:</label>
+          <select value={filterYear} onChange={e => setFilterYear(e.target.value)} className="border rounded px-2 py-1">
+            <option value="">Alle</option>
+            {allYears.map(y => (
+              <option key={y} value={y}>{y}</option>
+            ))}
+          </select>
+          {(filterMonth || filterYear) && (
+            <button className="ml-2 text-xs text-blue-600 underline" onClick={() => { setFilterMonth(''); setFilterYear(''); }}>Filter zurücksetzen</button>
           )}
-        </h2>
+        </div>
         {error ? (
           <div className="text-red-600">{error}</div>
         ) : loading ? (
@@ -123,10 +255,10 @@ const EinkommensbescheinigungPage = () => {
                 </tr>
               </thead>
               <tbody>
-                {!Array.isArray(data) || data.length === 0 ? (
+                {!Array.isArray(paginatedData) || paginatedData.length === 0 ? (
                   <tr><td colSpan={columns.length} className="text-center text-gray-400 py-6">Keine Einträge gefunden.</td></tr>
                 ) : (
-                  data.map((row: any) => (
+                  paginatedData.map((row: any) => (
                     <tr key={row.id} className="hover:bg-blue-50 transition">
                       {columns.map(col => (
                         <td key={col.key} className="py-2 px-3 border-b border-gray-100">{row[col.key] || '-'}</td>
@@ -136,16 +268,42 @@ const EinkommensbescheinigungPage = () => {
                 )}
               </tbody>
             </table>
+            {/* Pagination controls */}
+            {totalPages > 1 && (
+              <div className="flex justify-center items-center gap-2 mt-4">
+                <button
+                  className={`px-2 py-1 rounded ${currentPage === 1 ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-blue-100 text-blue-700 hover:bg-blue-200'}`}
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                >
+                  &lt;
+                </button>
+                <span className="font-semibold text-blue-900">Seite {currentPage} / {totalPages}</span>
+                <button
+                  className={`px-2 py-1 rounded ${currentPage === totalPages ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-blue-100 text-blue-700 hover:bg-blue-200'}`}
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                >
+                  &gt;
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
-      {/* Upload Section */}
-      <div className="w-full md:w-[340px] flex-shrink-0">
-        <div className="bg-white rounded-xl shadow p-6 flex flex-col items-center gap-4">
-          <div className="bg-green-100 rounded-full p-4 mb-2">
-            <FaFilePdf className="text-4xl text-green-600" />
+      {/* Right Section: Stepper for Upload and Download */}
+      <div className="w-full md:w-[380px] flex-shrink-0 flex flex-col gap-8">
+        {/* Step 1: PDF hochladen */}
+        <div className="flex flex-col items-center gap-2 py-6 relative">
+          <div className="flex flex-col items-center">
+            <div className="relative mb-2">
+              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-green-400 to-blue-400 flex items-center justify-center shadow-lg">
+                <FaFilePdf className="text-4xl text-white drop-shadow" />
+              </div>
+              <div className="absolute -top-2 -left-2 w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center font-bold text-lg shadow-lg border-2 border-white">1</div>
+            </div>
+            <div className="text-lg font-bold text-blue-900 mb-1">PDF hochladen</div>
           </div>
-          <h3 className="text-lg font-semibold text-blue-800 mb-2">PDF hochladen</h3>
           <input
             type="file"
             accept="application/pdf"
@@ -155,15 +313,102 @@ const EinkommensbescheinigungPage = () => {
             disabled={uploading}
           />
           <button
-            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-400 to-blue-500 text-white rounded-lg shadow hover:scale-105 transition"
+            className="flex items-center gap-2 px-5 py-2 bg-gradient-to-r from-green-400 to-blue-500 text-white rounded-full shadow hover:scale-105 transition font-semibold text-base mt-2"
             onClick={() => fileInputRef.current && (fileInputRef.current as HTMLInputElement).click()}
             disabled={uploading}
           >
             <FaUpload /> PDF auswählen
           </button>
-          {uploading && !error && <div className="text-blue-600 mt-2">Wird hochgeladen...</div>}
-          {success && <div className="text-green-600 mt-2">{success}</div>}
-          {error && !loading && <div className="text-red-600 mt-2">{error}</div>}
+          {uploading && !error && <div className="text-xs text-blue-600 mt-2">Wird hochgeladen...</div>}
+          {success && <div className="text-xs bg-green-100 text-green-700 rounded px-2 py-1 mt-2">{success}</div>}
+          {error && !loading && <div className="text-xs bg-red-100 text-red-700 rounded px-2 py-1 mt-2">{error}</div>}
+        </div>
+        {/* Step 2: PDF Optionen & Download */}
+        <div className="relative bg-gradient-to-br from-blue-50 to-white rounded-xl shadow p-4 flex flex-col gap-4 border-l-4 border-blue-400">
+          <div className="absolute -left-5 top-5 bg-blue-400 text-white rounded-full w-7 h-7 flex items-center justify-center font-bold text-base shadow">2</div>
+          <h3 className="text-lg font-bold text-blue-800 mb-1">PDF Optionen & Download</h3>
+          <div className="h-[1.5px] bg-gradient-to-r from-blue-300 to-blue-100 rounded mb-1" />
+          {/* UI for selecting months/years */}
+          <div className="flex flex-col gap-1 bg-white/70 rounded-lg p-2 border border-blue-100">
+            <div className="flex flex-wrap gap-2 items-center">
+              <label className="font-semibold text-sm">Startmonat:</label>
+              <select value={startMonth} onChange={e => setStartMonth(e.target.value)} className="border rounded px-2 py-1 text-sm">
+                <option value="">Monat</option>
+                {[...Array(12)].map((_, i) => (
+                  <option key={i+1} value={(i+1).toString().padStart(2, '0')}>{(i+1).toString().padStart(2, '0')}</option>
+                ))}
+              </select>
+              <label className="font-semibold text-sm">Jahr:</label>
+              <select value={startYear} onChange={e => setStartYear(e.target.value)} className="border rounded px-2 py-1 text-sm">
+                <option value="">Jahr</option>
+                {uniqueYears.map(y => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
+              <label className="font-semibold text-sm">Anzahl Monate:</label>
+              <select value={numMonths} onChange={e => setNumMonths(Number(e.target.value))} className="border rounded px-2 py-1 text-sm">
+                {[1,2,3,4,5,6].map(n => (
+                  <option key={n} value={n}>{n}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          {/* Monatlich gleich hoch & Branche */}
+          <div className="flex flex-col gap-2 bg-white/70 rounded-lg p-2 border border-blue-100">
+            <div className="flex flex-col md:flex-row gap-1 md:gap-2 items-start md:items-center w-full">
+              <div className="flex flex-col w-full md:w-auto">
+                <label className="font-semibold text-blue-900 flex-shrink-0 mb-1 md:mb-0 flex items-center gap-1 text-sm">
+                  <span>Einkommen monatlich gleich?</span>
+                  <span className="hidden md:inline text-xs text-gray-400" title="Das Einkommen ist monatlich gleich hoch">&#9432;</span>
+                </label>
+                <span className="md:hidden text-xs text-gray-400 mb-1">Das Einkommen ist monatlich gleich hoch</span>
+              </div>
+              <div className="flex gap-3 w-full md:w-auto">
+                <label className="flex items-center gap-1 cursor-pointer text-sm">
+                  <input type="radio" name="monatlichGleich" value="Ja" checked={monatlichGleich==='Ja'} onChange={()=>setMonatlichGleich('Ja')} /> Ja
+                </label>
+                <label className="flex items-center gap-1 cursor-pointer text-sm">
+                  <input type="radio" name="monatlichGleich" value="Nein" checked={monatlichGleich==='Nein'} onChange={()=>setMonatlichGleich('Nein')} /> Nein
+                </label>
+              </div>
+            </div>
+            <div className="flex flex-col md:flex-row gap-2 items-center">
+              <label className="font-semibold text-blue-900 flex-shrink-0 text-sm">Branche:</label>
+              <input
+                type="text"
+                className="border rounded px-2 py-1 w-full md:w-48 text-sm"
+                value={branche}
+                onChange={e=>setBranche(e.target.value)}
+                placeholder="z.B. Baugewerbe, Gastronomie..."
+              />
+            </div>
+          </div>
+          <div className="flex justify-end mt-1">
+            <PDFDownloadLink
+              document={<EinkommensbescheinigungPDFDocument
+                employee={employee}
+                eintritt={einkommensbescheinigung?.eintritt}
+                stkl={einkommensbescheinigung?.stkl}
+                krankenkasse={einkommensbescheinigung?.krankenkasse}
+                arbeitszeit_stunden={erklaerungForm?.arbeitszeit_stunden}
+                monatlichGleich={monatlichGleich}
+                branche={branche}
+                entgeltMonate={entgeltMonate}
+                company={company}
+              />}
+              fileName="Einkommensbescheinigung.pdf"
+            >
+              {({ loading }) => (
+                <button
+                  className={`flex items-center gap-2 px-4 py-2 rounded-full text-base font-semibold shadow transition-all ${canDownload ? 'bg-blue-600 text-white hover:bg-blue-700 scale-105' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}
+                  title="Download PDF"
+                  disabled={!canDownload}
+                >
+                  <FaDownload className="text-xl" /> {loading ? 'Erzeuge PDF...' : 'PDF herunterladen'}
+                </button>
+              )}
+            </PDFDownloadLink>
+          </div>
         </div>
       </div>
     </div>

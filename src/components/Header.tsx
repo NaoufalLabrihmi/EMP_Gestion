@@ -5,7 +5,8 @@ import { NavLink, useLocation } from 'react-router-dom';
 const nav = [
   { name: 'Dashboard', path: '/' },
   { name: 'Employees', path: '/employees' },
-  { name: 'ARBEITSVERTRAG FÜR', path: '/arbeitsvertrag' }
+  { name: 'ARBEITSVERTRAG FÜR', path: '/arbeitsvertrag' },
+  { name: 'Firma', path: '/company' },
 ];
 
 export default function Header() {

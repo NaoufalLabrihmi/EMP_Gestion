@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Jun 24, 2025 at 04:52 PM
+-- Generation Time: Jun 30, 2025 at 03:45 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -20,6 +20,31 @@ SET time_zone = "+00:00";
 --
 -- Database: `employees_db`
 --
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `company`
+--
+
+CREATE TABLE `company` (
+  `id` int(11) NOT NULL,
+  `name` varchar(255) NOT NULL,
+  `street` varchar(255) NOT NULL,
+  `postal_code` varchar(10) NOT NULL,
+  `city` varchar(100) NOT NULL,
+  `contact_person` varchar(255) DEFAULT NULL,
+  `phone` varchar(50) DEFAULT NULL,
+  `reference` varchar(100) DEFAULT NULL,
+  `company_number` varchar(20) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `company`
+--
+
+INSERT INTO `company` (`id`, `name`, `street`, `postal_code`, `city`, `contact_person`, `phone`, `reference`, `company_number`) VALUES
+(1, 'Fyonka Barber', 'Wallstraße 15', '2000', 'Dresden', 'Max Mustermann', '01234 567890', 'AB-123', '82444003');
 
 -- --------------------------------------------------------
 
@@ -41,6 +66,25 @@ CREATE TABLE `einkommensbescheinigung` (
   `jahr` varchar(4) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `einkommensbescheinigung`
+--
+
+INSERT INTO `einkommensbescheinigung` (`id`, `employee_id`, `eintritt`, `stkl`, `krankenkasse`, `betrag`, `kv_brutto`, `sv_abzug`, `netto`, `monat`, `jahr`, `created_at`) VALUES
+(2, 5, '01.10.24', '1', 'AOK PLUS Die Gesundhei', '346,13', '346,13', '72,69', '273,44', '12', '2024', '2025-06-24 19:33:57'),
+(3, 5, '01.11.24', '1', 'AOK PLUS Die Gesundhei', '346,13', '346,13', '72,69', '273,44', '11', '2024', '2025-06-24 19:43:00'),
+(4, 5, '01.10.24', '1', 'AOK PLUS Die Gesundhei', '346,13', '200,00', '72,69', '300,66', '01', '2024', '2025-06-28 13:37:38'),
+(5, 5, '01.10.24', '1', 'AOK PLUS Die Gesundhei', '346,13', '346,13', '72,69', '273,44', '07', '2024', '2025-06-28 13:37:43'),
+(6, 5, '01.10.24', '1', 'AOK PLUS Die Gesundhei', '346,13', '346,13', '15,00', '273,44', '09', '2024', '2025-06-28 13:37:47'),
+(7, 5, '01.10.24', '1', 'AOK PLUS Die Gesundhei', '346,13', '346,13', '72,69', '273,44', '08', '2024', '2025-06-28 13:37:50'),
+(8, 5, '01.10.24', '1', 'AOK PLUS Die Gesundhei', '346,13', '346,13', '72,69', '273,44', '06', '2024', '2025-06-28 13:37:58'),
+(9, 5, '01.10.24', '1', 'AOK PLUS Die Gesundhei', '346,13', '346,13', '72,69', '273,44', '04', '2024', '2025-06-28 13:59:08'),
+(10, 5, '01.10.24', '1', 'AOK PLUS Die Gesundhei', '346,13', '346,13', '72,69', '273,44', '03', '2024', '2025-06-28 13:59:14'),
+(11, 5, '01.10.24', '1', 'AOK PLUS Die Gesundhei', '346,13', '346,13', '72,69', '273,44', '02', '2024', '2025-06-28 13:59:18'),
+(12, 5, '01.10.24', '1', 'AOK PLUS Die Gesundhei', '346,13', '346,13', '72,69', '273,44', '10', '2025', '2025-06-28 13:59:52'),
+(13, 5, '01.10.24', '1', 'AOK PLUS Die Gesundhei', '346,13', '346,13', '72,69', '273,44', '10', '2024', '2025-06-30 13:33:47'),
+(15, 5, '01.10.24', '1', 'AOK PLUS Die Gesundhei', '346,13', '346,13', '72,69', '273,44', '10', '2024', '2025-06-30 13:37:17');
 
 -- --------------------------------------------------------
 
@@ -239,6 +283,12 @@ INSERT INTO `erklaerung_form` (`id`, `employee_id`, `erklaerung_typ`, `erklaerun
 --
 
 --
+-- Indexes for table `company`
+--
+ALTER TABLE `company`
+  ADD PRIMARY KEY (`id`);
+
+--
 -- Indexes for table `einkommensbescheinigung`
 --
 ALTER TABLE `einkommensbescheinigung`
@@ -264,10 +314,16 @@ ALTER TABLE `erklaerung_form`
 --
 
 --
+-- AUTO_INCREMENT for table `company`
+--
+ALTER TABLE `company`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
 -- AUTO_INCREMENT for table `einkommensbescheinigung`
 --
 ALTER TABLE `einkommensbescheinigung`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
 
 --
 -- AUTO_INCREMENT for table `employees`

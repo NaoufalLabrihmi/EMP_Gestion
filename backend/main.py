@@ -5,6 +5,7 @@ import logging
 from routes_employees import router as employees_router
 from routes_erklaerung_form import router as erklaerung_form_router
 from routes_einkommensbescheinigung import router as einkommensbescheinigung_router
+from routes_company import router as company_router
 
 logging.basicConfig(level=logging.INFO)
 
@@ -23,6 +24,7 @@ app.add_middleware(
 app.include_router(employees_router)
 app.include_router(erklaerung_form_router)
 app.include_router(einkommensbescheinigung_router)
+app.include_router(company_router)
 
 @app.get("/")
 def root():

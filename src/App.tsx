@@ -8,6 +8,7 @@ import EmployeeEdit from './components/EmployeeEdit';
 import EmployeeErklaerungFormEdit from './components/EmployeeErklaerungFormEdit';
 import ArbeitsvertragPage from './pages/Arbeitsvertrag';
 import EinkommensbescheinigungPage from './pages/Einkommensbescheinigung';
+import CompanyEdit from './pages/CompanyEdit';
 
 const stats = [
   { label: 'Total Users', value: '1,234' },
@@ -58,11 +59,12 @@ export default function App() {
       <div className="flex-1 flex flex-col w-full px-2 overflow-x-hidden">
         <Routes>
           <Route path="/" element={<Dashboard />} />
-          <Route path="/employees" element={<Employees />} />
+          <Route path="/employees/*" element={<Employees />} />
           <Route path="/employees/:id/edit" element={<EmployeeEdit />} />
           <Route path="/employees/:id/erklaerung-form" element={<EmployeeErklaerungFormEdit />} />
           <Route path="/arbeitsvertrag" element={<ArbeitsvertragPage />} />
           <Route path="/einkommensbescheinigung" element={<EinkommensbescheinigungPage />} />
+          <Route path="/company" element={<CompanyEdit />} />
         </Routes>
       </div>
     </div>
