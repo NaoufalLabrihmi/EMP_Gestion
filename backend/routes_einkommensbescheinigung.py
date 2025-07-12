@@ -1,15 +1,16 @@
-from fastapi import APIRouter, File, UploadFile, HTTPException, Query, status, Body
+from fastapi import APIRouter, File, UploadFile, HTTPException, Query, status, Body, Depends
 from db import get_connection
 from pdf_extract_utils import extract_einkommensbescheinigung_fields
 import tempfile
 import shutil
 import os
 import logging
+from auth import get_current_user
 
 router = APIRouter()
 
 @router.post("/employees/{employee_id}/einkommensbescheinigung/upload", status_code=status.HTTP_201_CREATED)
-async def upload_einkommensbescheinigung(employee_id: int, file: UploadFile = File(...)):
+async def upload_einkommensbescheinigung(employee_id: int, file: UploadFile = File(...), user=Depends(get_current_user)):
     # Save uploaded file to a temp location
     try:
         with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
@@ -56,7 +57,7 @@ async def upload_einkommensbescheinigung(employee_id: int, file: UploadFile = Fi
     return {"message": "Einkommensbescheinigung gespeichert", "data": extracted, "monat": extracted.get('monat'), "jahr": extracted.get('jahr')}
 
 @router.get("/einkommensbescheinigung/list")
-def list_einkommensbescheinigung(employeeId: int = Query(...)):
+def list_einkommensbescheinigung(employeeId: int = Query(...), user=Depends(get_current_user)):
     try:
         conn = get_connection()
         cursor = conn.cursor(dictionary=True)
@@ -74,7 +75,7 @@ def list_einkommensbescheinigung(employeeId: int = Query(...)):
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
 @router.get("/employees/{employee_id}")
-def get_employee(employee_id: int):
+def get_employee(employee_id: int, user=Depends(get_current_user)):
     try:
         conn = get_connection()
         cursor = conn.cursor(dictionary=True)
@@ -90,7 +91,7 @@ def get_employee(employee_id: int):
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
 @router.get('/erklaerung_form/{employee_id}')
-def get_erklaerung_form(employee_id: int):
+def get_erklaerung_form(employee_id: int, user=Depends(get_current_user)):
     try:
         conn = get_connection()
         cursor = conn.cursor(dictionary=True)

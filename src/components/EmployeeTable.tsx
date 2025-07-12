@@ -1,12 +1,224 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import { API_BASE_URL } from '../lib/api';
-import { FaCheck, FaDownload, FaChevronLeft, FaChevronRight, FaPlus, FaTimes, FaTrash, FaEdit, FaFilePdf, FaFileAlt } from 'react-icons/fa';
+import { FaCheck, FaDownload, FaChevronLeft, FaChevronRight, FaPlus, FaTimes, FaTrash, FaEdit, FaFilePdf, FaFileAlt, FaSpinner } from 'react-icons/fa';
 import { pdf } from '@react-pdf/renderer';
 import EmployeePDF from './EmployeePDF';
 import { useNavigate } from 'react-router-dom';
+import { PDFDownloadLink } from '@react-pdf/renderer';
+import { StundenzettelPDFDocument } from './StundenzettelPDFDocument';
+import { useCallback } from 'react';
+import ReactModal from 'react-modal';
+
+function getDaysInMonth(year, month) {
+  const days = [];
+  const date = new Date(year, month - 1, 1);
+  while (date.getMonth() === month - 1) {
+    days.push({
+      weekday: ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'][date.getDay()],
+      day: date.getDate(),
+    });
+    date.setDate(date.getDate() + 1);
+  }
+  return days;
+}
+
+function minToHHMM(mins) {
+  if (!mins || isNaN(mins) || mins === 0) return '-';
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return `${h > 0 ? h + ':' : '0:'}${m.toString().padStart(2, '0')}`;
+}
+
+function parseVerteilung(verteilung) {
+  const obj = {};
+  if (!verteilung) return obj;
+  verteilung.split(',').forEach(part => {
+    const [w, min] = part.split(':');
+    if (w && min) obj[w.trim()] = parseInt(min.trim(), 10);
+  });
+  return obj;
+}
+
+function parseVerteilungHours(verteilung) {
+  const obj = {};
+  if (!verteilung) return obj;
+  verteilung.split(',').forEach(part => {
+    const [w, h] = part.split(':');
+    if (w && h) obj[w.trim()] = parseFloat(h.trim());
+  });
+  return obj;
+}
+
+function hoursToHHMM(hours) {
+  if (!hours || isNaN(hours) || hours === 0) return '-';
+  const h = Math.floor(hours);
+  const m = Math.round((hours - h) * 60);
+  return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+}
+
+function StundenzettelInputModal({ isOpen, onClose, onConfirm, year, month, arbeitszeitVerteilung, holidays }) {
+  const days = getDaysInMonth(year, month);
+  const verteilung = parseVerteilung(arbeitszeitVerteilung);
+  const [inputs, setInputs] = React.useState(() => days.map(({ weekday }) => ({
+    beginn: '08:30',
+    pause: '12:00',
+    ende: '04:30',
+    dauer: minToHHMM(verteilung[weekday] || 0),
+  })));
+  React.useEffect(() => {
+    setInputs(days.map(({ weekday }) => ({
+      beginn: '08:30',
+      pause: '12:00',
+      ende: '04:30',
+      dauer: minToHHMM(verteilung[weekday] || 0),
+    })));
+    // eslint-disable-next-line
+  }, [year, month, arbeitszeitVerteilung]);
+  const handleChange = (idx, field, value) => {
+    setInputs(inputs => inputs.map((row, i) => i === idx ? { ...row, [field]: value } : row));
+  };
+  return (
+    <ReactModal isOpen={isOpen} onRequestClose={onClose} ariaHideApp={false} style={{ content: { maxWidth: 700, margin: 'auto', inset: 40 } }}>
+      <h2 className="font-bold text-lg mb-2">Stundenzettel Eingabe ({month}.{year})</h2>
+      <div className="overflow-x-auto">
+        <table className="w-full text-xs border">
+          <thead>
+            <tr>
+              <th>Kalendertag</th>
+              <th>Beginn (Uhrzeit)</th>
+              <th>Pause (Dauer)</th>
+              <th>Ende (Uhrzeit)</th>
+              <th>Dauer (Summe)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {days.map(({ weekday, day }, idx) => (
+              <tr key={day} className={weekday === 'So' ? 'bg-gray-100' : ''}>
+                <td>{weekday}, {day.toString().padStart(2, '0')}</td>
+                <td><input type="text" value={inputs[idx].beginn} onChange={e => handleChange(idx, 'beginn', e.target.value)} className="border rounded px-1 w-16" /></td>
+                <td><input type="text" value={inputs[idx].pause} onChange={e => handleChange(idx, 'pause', e.target.value)} className="border rounded px-1 w-16" /></td>
+                <td><input type="text" value={inputs[idx].ende} onChange={e => handleChange(idx, 'ende', e.target.value)} className="border rounded px-1 w-16" /></td>
+                <td><input type="text" value={inputs[idx].dauer} readOnly className="border rounded px-1 w-16 bg-gray-50" /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className="flex gap-2 justify-end mt-4">
+        <button onClick={onClose} className="px-4 py-2 rounded bg-gray-200">Abbrechen</button>
+        <button onClick={() => onConfirm(inputs)} className="px-4 py-2 rounded bg-blue-600 text-white">Bestätigen</button>
+      </div>
+    </ReactModal>
+  );
+}
 
 const PAGE_SIZE = 7;
+
+function useStundenzettelData(employeeId, year) {
+  const [data, setData] = React.useState(null);
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState(null);
+  const fetchData = useCallback(() => {
+    setLoading(true);
+    setError(null);
+    axios.get(`${API_BASE_URL}/employees/stundenzettel-data/${employeeId}?year=${year}`)
+      .then(res => setData(res.data))
+      .catch(e => setError(e))
+      .finally(() => setLoading(false));
+  }, [employeeId, year]);
+  React.useEffect(() => {
+    if (employeeId && year) fetchData();
+  }, [employeeId, year, fetchData]);
+  return { data, loading, error };
+}
+
+function getHolidaysForYear(year, state = 'sn') {
+  // Use backend proxy endpoint to avoid CORS
+  return axios.get(`${API_BASE_URL}/holidays/${year}?state=${state}`)
+    .then(res => res.data);
+}
+
+function StundenzettelPDFDownload({ employeeId, year, emp }) {
+  const { data, loading } = useStundenzettelData(employeeId, year);
+  const [holidays, setHolidays] = React.useState({});
+  const [pdfUrl, setPdfUrl] = React.useState(null);
+  const [generating, setGenerating] = React.useState(false);
+  React.useEffect(() => {
+    getHolidaysForYear(year, 'sn').then(setHolidays);
+  }, [year]);
+  // Always show the icon, but disable if not ready
+  const notReady = loading || Object.keys(holidays).length === 0 || !data;
+  // Build entries prop for PDF for all 12 months
+  const entries = {};
+  const verteilung = data ? parseVerteilungHours(data.arbeitszeitVerteilung) : {};
+  for (let month = 1; month <= 12; month++) {
+    const days = getDaysInMonth(year, month);
+    entries[month] = {};
+    days.forEach(({ weekday, day }) => {
+      const isHoliday = holidays[month]?.[day.toString().padStart(2, '0')];
+      if (isHoliday) {
+        entries[month][day.toString().padStart(2, '0')] = {};
+        return;
+      }
+      const dauerH = verteilung[weekday] || 0;
+      const beginn = '08:30';
+      const pause = '1:00'; // 1 hour pause
+      // Work resumes at 09:30
+      let [bh, bm] = beginn.split(':').map(Number);
+      let resumeMin = bh * 60 + bm + 60; // add 1 hour pause
+      let resumeHour = Math.floor(resumeMin / 60);
+      let resumeMinute = resumeMin % 60;
+      // Calculate Ende as resume + Dauer
+      let totalMin = resumeHour * 60 + resumeMinute + Math.round(dauerH * 60);
+      let eh = Math.floor(totalMin / 60);
+      let em = totalMin % 60;
+      const ende = `${eh.toString().padStart(2, '0')}:${em.toString().padStart(2, '0')}`;
+      const dauer = hoursToHHMM(dauerH);
+      entries[month][day.toString().padStart(2, '0')] = {
+        beginn,
+        pause,
+        ende,
+        dauer,
+      };
+    });
+  }
+  const handleGenerate = async () => {
+    setGenerating(true);
+    setPdfUrl(null);
+    const doc = <StundenzettelPDFDocument {...data} entries={entries} holidays={holidays} />;
+    const blob = await pdf(doc).toBlob();
+    const url = URL.createObjectURL(blob);
+    setPdfUrl(url);
+    setGenerating(false);
+  };
+  return (
+    <>
+      {!pdfUrl ? (
+        <button
+          className={`p-2 rounded-full bg-gradient-to-r from-blue-500 to-cyan-400 text-white shadow hover:scale-110 hover:shadow-lg transition-transform focus:outline-none focus:ring-2 focus:ring-blue-300 ${notReady ? 'opacity-50 cursor-not-allowed' : ''}`}
+          style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+          title={notReady ? 'Stundenzettel nicht bereit' : 'Stundenzettel generieren'}
+          onClick={handleGenerate}
+          disabled={notReady || generating}
+        >
+          {generating ? <FaSpinner className="animate-spin w-5 h-5" /> : <FaDownload className="w-5 h-5" />}
+        </button>
+      ) : (
+        <a
+          href={pdfUrl}
+          download={`Stundenzettel_${emp.vorname}_${emp.geburtsname}_${year}.pdf`}
+          className="p-2 rounded-full bg-gradient-to-r from-green-500 to-cyan-400 text-white shadow hover:scale-110 hover:shadow-lg transition-transform focus:outline-none focus:ring-2 focus:ring-green-300"
+          style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+          title="Stundenzettel herunterladen"
+          onClick={() => { setTimeout(() => { URL.revokeObjectURL(pdfUrl); setPdfUrl(null); }, 1000); }}
+        >
+          <FaDownload className="w-5 h-5" />
+        </a>
+      )}
+    </>
+  );
+}
 
 export default function EmployeeTable() {
   const [employees, setEmployees] = useState([]);
@@ -20,6 +232,9 @@ export default function EmployeeTable() {
   const [editForm, setEditForm] = useState<any>({});
   const [page, setPage] = useState(1);
   const navigate = useNavigate();
+  const [selectedYear, setSelectedYear] = useState<{ [id: number]: number }>({});
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: 6 }, (_, i) => currentYear - i);
 
   useEffect(() => {
     axios.get(`${API_BASE_URL}/employees/list`)
@@ -183,7 +398,7 @@ export default function EmployeeTable() {
   }, [toast]);
 
   return (
-    <div className="w-full max-w-7xl mx-auto my-4 px-2 md:px-4">
+    <div className="w-full my-4 px-2 md:px-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-4 z-10 relative px-1">
         <h2 className="text-3xl font-extrabold text-blue-900 tracking-tight drop-shadow-lg flex items-center gap-2">
           <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">Employees</span>
@@ -208,21 +423,22 @@ export default function EmployeeTable() {
       {/* Responsive Table/Card Layout */}
       <div className="hidden md:block">
         <div className="overflow-hidden rounded-3xl border border-blue-100 shadow-2xl bg-white/80 backdrop-blur-xl">
-          <table className="min-w-full text-base">
+          <table className="w-full text-base">
             <thead className="sticky top-0 z-20">
               <tr className="bg-gradient-to-r from-blue-100/80 via-cyan-100/80 to-blue-50/80 text-blue-800 text-sm">
                 <th className="px-3 py-2 text-left font-bold">#</th>
                 {columns.map(col => (
                   <th key={col.key} className="px-3 py-2 text-left font-bold whitespace-nowrap text-sm">{col.label}</th>
                 ))}
+                <th className="px-3 py-2 text-left font-bold">Stundenzettel PDF</th>
                 <th className="px-3 py-2 text-left font-bold">Actions</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={columns.length + 2} className="py-12 text-center text-blue-400 animate-pulse text-base">Loading...</td></tr>
+                <tr><td colSpan={columns.length + 3} className="py-12 text-center text-blue-400 animate-pulse text-base">Loading...</td></tr>
               ) : paginated.length === 0 ? (
-                <tr><td colSpan={columns.length + 2} className="py-12 text-center text-blue-400 text-base">No employees found.</td></tr>
+                <tr><td colSpan={columns.length + 3} className="py-12 text-center text-blue-400 text-base">No employees found.</td></tr>
               ) : paginated.map((emp, idx) => (
                 <tr key={emp.id} className={`group even:bg-blue-50/60 odd:bg-white/80 hover:shadow-xl hover:scale-[1.01] transition-all duration-200 rounded-2xl ${editingId === emp.id ? 'ring-2 ring-cyan-400' : ''}`} style={{ fontSize: '1.08rem' }}>
                   <td className="px-3 py-2 text-blue-900 font-bold text-sm">{(page - 1) * PAGE_SIZE + idx + 1}</td>
@@ -308,6 +524,14 @@ export default function EmployeeTable() {
                       );
                     }
                   })}
+                  {/* Stundenzettel PDF column */}
+                  <td className="px-3 py-2">
+                    <div className="flex flex-col items-center gap-1">
+                      <div className="flex items-center gap-1 bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-100 rounded-2xl px-2 py-1 shadow-inner w-fit mx-auto text-xs">
+                        <StundenzettelPDFDownload employeeId={emp.id} year={currentYear} emp={emp} />
+                      </div>
+                    </div>
+                  </td>
                   <td className="px-3 py-2 flex gap-2 items-center justify-center group-hover:bg-cyan-50/60 transition rounded-xl">
                     {editingId === emp.id ? (
                       <>

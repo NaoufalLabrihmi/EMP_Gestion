@@ -3,7 +3,7 @@ import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
 
 // Accept all employee fields from DB
 interface EmployeePDFProps {
-  data: any; // full employee object
+  data: any;
   stand: string;
 }
 

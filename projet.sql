@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Jun 30, 2025 at 03:45 PM
+-- Generation Time: Jul 12, 2025 at 03:20 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -194,7 +194,7 @@ CREATE TABLE `employees` (
 --
 
 INSERT INTO `employees` (`id`, `id_number`, `personal_number`, `vorname`, `geburtsname`, `strasse_hausnummer`, `plz_ort`, `geburtsdatum`, `geschlecht`, `versicherungsnummer`, `familienstand`, `geburtsort_land`, `schwerbehindert`, `staatsangehoerigkeit`, `arbeitnehmernummer`, `iban`, `bic`, `eintrittsdatum`, `ersteintrittsdatum`, `betriebsstaette`, `berufsbezeichnung`, `taetigkeit`, `hauptbeschaeftigung`, `nebenbeschaeftigung`, `weitere_beschaeftigungen`, `schulabschluss`, `berufsausbildung`, `ausbildung_beginn`, `ausbildung_ende`, `baugewerbe_seit`, `arbeitszeit_vollzeit`, `arbeitszeit_teilzeit`, `arbeitszeit_verteilung`, `urlaubsanspruch`, `kostenstelle`, `abteilungsnummer`, `personengruppe`, `arbeitsverhaeltnis_befristet`, `zweckbefristet`, `befristung_arbeitsvertrag_zum`, `schriftlicher_abschluss`, `abschluss_arbeitsvertrag_am`, `befristete_beschaeftigung_2monate`, `weitere_angaben`, `identifikationsnummer`, `finanzamt_nr`, `steuerklasse`, `kinderfreibetraege`, `konfession`, `gesetzliche_krankenkasse`, `elterneigenschaft`, `kv`, `rv`, `av`, `pv`, `uv_gefahrtarif`, `entlohnung_bezeichnung1`, `entlohnung_betrag1`, `entlohnung_gueltig_ab1`, `entlohnung_stundenlohn1`, `entlohnung_gueltig_ab_stunden1`, `entlohnung_bezeichnung2`, `entlohnung_betrag2`, `entlohnung_gueltig_ab2`, `entlohnung_stundenlohn2`, `entlohnung_gueltig_ab_stunden2`, `entlohnung_bezeichnung3`, `entlohnung_betrag3`, `entlohnung_gueltig_ab3`, `entlohnung_stundenlohn3`, `entlohnung_gueltig_ab_stunden3`, `vwl_empfaenger`, `vwl_betrag`, `vwl_ag_anteil`, `vwl_seit_wann`, `vwl_vertragsnr`, `vwl_kontonummer`, `vwl_bankleitzahl`, `ap_arbeitsvertrag`, `ap_bescheinigung_lsta`, `ap_sv_ausweis`, `ap_mitgliedsbescheinigung_kk`, `ap_bescheinigung_private_kk`, `ap_vwl_vertrag`, `ap_nachweis_elterneigenschaft`, `ap_vertrag_bav`, `ap_schwerbehindertenausweis`, `ap_unterlagen_sozialkasse`, `vorbeschaeftigung_zeitraum_von`, `vorbeschaeftigung_zeitraum_bis`, `vorbeschaeftigung_art`, `vorbeschaeftigung_tage`, `land`, `contract_type`) VALUES
-(5, 'YZ51L5GCG', '406253', 'test1', 'aloo', 'test2', 'TEST 26', '1986-06-04', 'männlich', 'Assumenda voluptatem', 'Reiciendis illum no', 'Qui aut magni duis v', 1, 'Consequuntur blandit', 'Labore enim aperiam ', 'Proident consequatu', 'Inventore est volup', '2017-06-01', '1986-02-26', 'Id ab nulla et dolor', 'Et nulla voluptatum ', 'Voluptatum quam dolo', 0, 0, 1, 'ohne Schulabschluss', 'Meister/Techniker', '2006-10-08', '2009-01-02', '1980-08-17', 0, 1, 'Mo:76,Di:46,Mi:26,Do:88,Fr:0,Sa:96', 86, 'Eos numquam unde pra', 'Esse ea tempore ve', 'Voluptatibus volupta', 1, 1, '2015-10-05', 0, '1990-08-12', 1, ' Aperiam minus quis s Aperiam minus quis s Aperiam minus quis s Aperiam minus quis s Aperiam minus quis s', 'Aspernatur et dolore', 'Ad natus ipsam ipsam', 'Ea sit nemo quia sus', 'Voluptatum deserunt ', 'In aut elit sed et ', 'Cum eum repudiandae ', 0, 'Autem temporibus ali', 'Lorem quo ut aperiam', 'Eos veniam ex volu', 'Mollit nulla occaeca', 'Ut quia nihil repell', 'Quis voluptates magn', 36.00, '1980-07-06', 52.00, '1998-12-06', 'Debitis impedit in ', 89.00, '2003-08-10', 86.00, '1993-05-27', 'Anim placeat sed no', 44.00, '2024-09-11', 38.00, '1978-07-10', 'Lorem repudiandae do', 38.00, 83.00, '1971-10-17', 'Eius et obcaecati om', 'Accusantium sit vel', 'Officia distinctio ', 1, 0, 1, 0, 0, 0, 0, 0, 0, 1, '2016-08-08', '2012-01-04', 'Rerum sit enim minu', 50, 'FRA', 'TEILZEITTÄTIGKEIT - \"MINIJOB\"');
+(5, 'YZ51L5GCG', '406253', 'test1', 'aloo', 'test2', 'TEST 26', '1986-06-04', 'männlich', 'Assumenda voluptatem', 'Reiciendis illum no', 'Qui aut magni duis v', 1, 'Consequuntur blandit', 'Labore enim aperiam ', 'Proident consequatu', 'Inventore est volup', '2017-06-01', '1986-02-26', 'Id ab nulla et dolor', 'Et nulla voluptatum ', 'Voluptatum quam dolo', 0, 0, 1, 'ohne Schulabschluss', 'Meister/Techniker', '2006-10-08', '2009-01-02', '2025-07-17', 0, 1, 'Mo:05,Di:07,Mi:06,Do:05,Fr:03,Sa:04', 86, 'Eos numquam unde pra', 'Esse ea tempore ve', 'Voluptatibus volupta', 1, 1, '2015-10-05', 0, '1990-08-12', 1, ' Aperiam minus quis s Aperiam minus quis s Aperiam minus quis s Aperiam minus quis s Aperiam minus quis s', 'Aspernatur et dolore', 'Ad natus ipsam ipsam', 'Ea sit nemo quia sus', 'Voluptatum deserunt ', 'In aut elit sed et ', 'Cum eum repudiandae ', 0, 'Autem temporibus ali', 'Lorem quo ut aperiam', 'Eos veniam ex volu', 'Mollit nulla occaeca', 'Ut quia nihil repell', 'Quis voluptates magn', 36.00, '1980-07-06', 52.00, '1998-12-06', 'Debitis impedit in ', 89.00, '2003-08-10', 86.00, '1993-05-27', 'Anim placeat sed no', 44.00, '2024-09-11', 38.00, '1978-07-10', 'Lorem repudiandae do', 38.00, 83.00, '1971-10-17', 'Eius et obcaecati om', 'Accusantium sit vel', 'Officia distinctio ', 1, 0, 1, 0, 0, 0, 0, 0, 0, 1, '2016-08-08', '2012-01-04', 'Rerum sit enim minu', 50, 'FRA', 'TEILZEITTÄTIGKEIT - \"MINIJOB\"');
 
 -- --------------------------------------------------------
 
@@ -278,6 +278,61 @@ CREATE TABLE `erklaerung_form` (
 INSERT INTO `erklaerung_form` (`id`, `employee_id`, `erklaerung_typ`, `erklaerung_anlass`, `wohnsitz`, `wohnsitz_seit`, `arbeitgeber_firma`, `arbeitgeber_strasse`, `arbeitgeber_hausnummer`, `arbeitgeber_plz`, `arbeitgeber_ort`, `arbeitgeber_kontakt`, `arbeitgeber_telefon`, `arbeitgeber_email`, `arbeitgeber_telefax`, `arbeitgeber_betriebsstaette`, `arbeitgeber_gegruendet`, `beschaeftigung_beginn`, `beschaeftigung_befristung`, `beschaeftigung_befristet_bis`, `beschaeftigung_ueberlassung`, `beschaeftigung_arbeitsort`, `beschaeftigung_arbeitsort_adresse`, `beschaeftigung_berufsbezeichnung`, `qualifikation_keine`, `qualifikation_hochschule`, `qualifikation_studiengang`, `qualifikation_hochschulort`, `qualifikation_hochschul_anerkannt`, `qualifikation_hochschul_nachweis`, `qualifikation_berufsausbildung`, `qualifikation_berufsausbildung_bezeichnung`, `qualifikation_berufsausbildung_ort`, `qualifikation_berufsausbildung_anerkannt`, `qualifikation_berufsausbildung_nachweis`, `qualifikation_sonstige`, `qualifikation_sonstige_text`, `qualifikation_nicht_erforderlich`, `berufsausuebung_gebunden`, `berufsausuebung_qualifikation`, `arbeitszeit_typ`, `arbeitszeit_stunden`, `ueberstunden_verpflichtet`, `ueberstunden_umfang`, `ueberstunden_ausgleich`, `urlaubsanspruch_tage`, `arbeitgeber_tarifgebunden`, `arbeitnehmer_tariflich`, `tarifvertrag`, `entgeltgruppe`, `entgelt_pro_typ`, `entgelt_pro_stunde_wert`, `entgelt_pro_monat_wert`, `geldwerte_leistungen`, `geldwerte_leistungen_art`, `geldwerte_leistungen_hoehe`, `sonstige_berechnung`, `sonstige_berechnung_art`, `sonstige_berechnung_hoehe`, `versicherungspflicht_de`, `versicherungspflicht_begruendung`, `dvka_ausnahme`, `dvka_nachweis_form`, `ergaenzende_angaben`, `unterschrift_ort`, `unterschrift_datum`) VALUES
 (1, 5, 'zur Erteilung einer Vorabzustimmung der Bundesagentur für Arbeit', 'Ersterteilung', 'Iusto veniam error ', '2001-06-23', 'Beatae nesciunt et ', 'Excepturi commodi om', 'Voluptas ipsum aperi', 'Facere sint cupidit', 'Ex in qui odit et do', 'Ducimus ea ex quis ', 'Et aliquip eu harum ', 'hyhu@mailinator.com', '+1 (719) 688-9207', 'Consectetur id impe', 'Ja', '1995-06-01', 'befristet', '2025-06-04', 'Ja', 'adresse', 'test test', 'emp', 1, 1, 'Bitte machen Sie Angaben zum Arbeitsort:', 'Bitte machen Sie Angaben zum Arbeitsort:', 'Ja', 'Bitte machen Sie Angaben zum Arbeitsort:', 1, 'Bitte machen Sie Angaben zum Arbeitsort:', 'Bitte machen Sie Angaben zum Arbeitsort:', 'Teilweise', 'Bitte machen Sie Angaben zum Arbeitsort:', 1, 'Bitte machen Sie Angaben zum Arbeitsort:', 1, 'Ja', 'Et sunt enim aut et ', 'Vollzeit', '501', 'Ja', 'Sed esse sed cumque ', 'Omnis vel aut facere', 200, 'Ja', 'Ja', 'Et sunt voluptates ', 'Aut qui est ea natus', 'pro Monat', NULL, 2000.00, 1, 'fdv', 11.00, 1, 'Bitte machen Sie Angaben zum Arbeitsort:', 111.00, 'Ja', 'Aute Nam sed aperiam', 'Ja', 'Laborum Nam lorem vo', 'Fuga Totam fugiat q', 'Consectetur vel quos', '2020-08-26');
 
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `password_resets`
+--
+
+CREATE TABLE `password_resets` (
+  `id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `token` varchar(255) NOT NULL,
+  `expires_at` varchar(64) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `password_resets`
+--
+
+INSERT INTO `password_resets` (`id`, `user_id`, `token`, `expires_at`) VALUES
+(1, 6, 'j3jOTpxGAftjxSK6kOaDPP-64L47Jo63SPXUPYBgvWJexQORuRkMe1SPW8kKM5-o', '2025-07-12T12:32:36.785263'),
+(2, 6, 'caOF0wh1Yj2UKwmYmn04lphEizSHHFO4W_o9CA4Oye9hJb3nvN8mqSCfW-8g6FrP', '2025-07-12T12:33:14.297864'),
+(3, 6, 'ZPB9A1R37Qsg5FqJrb3EIIAFv8X1W-v5a3b8preuvJMELTOmHdeBprX1nq7RgJAQ', '2025-07-12T12:46:39.853886'),
+(4, 6, '87BTfDc1DWjF1aHng9lv1IlwQCTu3v91NzoF8ZuSb81HxT-GG-248ie4LeNDEoW9', '2025-07-12T12:46:46.358510'),
+(5, 6, 'zDkHXt0tIWoUIG22uieDufnxUwrMVgp2HydQfifXl6NylpL3eWzb0lm-M65aA6u-', '2025-07-12T12:47:24.211251'),
+(6, 7, 'KX4Yxpy_j381ozmEY1adY8NR6ipgSNHpIzWwqU4u0uhRtpvWsGEU8_XyaGVifUb_', '2025-07-12T12:48:28.635917'),
+(8, 8, 'S4H9LRu-Q3RgOhX-brUHyIKMjHXrUPw3vZrFFHlrhlEV4Q9uqXsc0INZHXNFev8L', '2025-07-12T13:18:50.838965');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `users`
+--
+
+CREATE TABLE `users` (
+  `id` int(11) NOT NULL,
+  `username` varchar(100) NOT NULL,
+  `email` varchar(255) NOT NULL,
+  `password` varchar(255) NOT NULL,
+  `role` enum('user','admin') NOT NULL DEFAULT 'user'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `users`
+--
+
+INSERT INTO `users` (`id`, `username`, `email`, `password`, `role`) VALUES
+(1, 'admin', 'admin@example.com', '$2b$12$osf5lHl.mTQ80UH19CEZ/OatAOz9JmKBqb3BFvG7Ctvo28zYWh97W', 'admin'),
+(5, 'qosalokicu', 'qogoxico@mailinator.com', '$2b$12$ULZP9KLlUBqdTNoPyrbFi.pAFXsFjR3ad1TCC6RVXr.auAm6gfH.q', 'admin'),
+(6, 'kifyrufy692', 'kifyrufy692@bdm.ovh', '$2b$12$Ws3yVNlHLy..IDILq08ireYKplE5DQl9FuSiB2Be2kjRvpmKwpwwa', 'user'),
+(7, 'wihinu', 'vilotana851@meltp.com', '$2b$12$lI2W39T3vsb6p30l8LMbxOUTqfWthiWr74ESD2pUJujd6784N1Gfm', 'user'),
+(8, 'gobire', 'naoufal.labrihmi@gmail.com', '$2b$12$ELLAH.KF43u1R5N51Fequu//1sA322R4pVBHHPlRUz4u5AFyqOegC', 'admin'),
+(9, 'vomibasute', 'nobewaby146@priyomail.net', '$2b$12$dCkQvHrGOOX13jJ/fY7KF.lU8oMUkxr6bvVLdRQJ9iEP18KNlYvV6', 'user'),
+(10, 'gofufic', 'zacexejyxe@mailinator.com', '$2b$12$VOVyb.g8NG8LnTVbZiOC3.6Ad6nHpmccs4HlUTeD7FfzSobe0klgy', 'user'),
+(11, 'lowahyka', 'qagy@mailinator.com', '$2b$12$9kPkgKUSSjftQVZKDvCOPudGOPpSd.vcp8XsRVZ1W7D63ht9ktK0i', 'admin'),
+(12, 'vadexu', 'sytydikibo@mailinator.com', '$2b$12$kLm7S8j5/2neFJOl2DF5VOmvrQKfSCe0dSEjeYl9kWYO3AKVEou.q', 'user');
+
 --
 -- Indexes for dumped tables
 --
@@ -310,6 +365,21 @@ ALTER TABLE `erklaerung_form`
   ADD KEY `employee_id` (`employee_id`);
 
 --
+-- Indexes for table `password_resets`
+--
+ALTER TABLE `password_resets`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `token` (`token`);
+
+--
+-- Indexes for table `users`
+--
+ALTER TABLE `users`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `username` (`username`),
+  ADD UNIQUE KEY `email` (`email`);
+
+--
 -- AUTO_INCREMENT for dumped tables
 --
 
@@ -336,6 +406,18 @@ ALTER TABLE `employees`
 --
 ALTER TABLE `erklaerung_form`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
+-- AUTO_INCREMENT for table `password_resets`
+--
+ALTER TABLE `password_resets`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
+
+--
+-- AUTO_INCREMENT for table `users`
+--
+ALTER TABLE `users`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
 
 --
 -- Constraints for dumped tables

@@ -7,3 +7,6 @@ mindee
 reportlab
 pypdf
 python-docx
+pdfrw
+bcrypt
+PyJWT

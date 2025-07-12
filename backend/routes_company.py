@@ -1,10 +1,11 @@
-from fastapi import APIRouter, HTTPException, Body
+from fastapi import APIRouter, HTTPException, Body, Depends
 from db import get_connection
+from auth import get_current_user
 
 router = APIRouter()
 
 @router.get('/company')
-def get_company():
+def get_company(user=Depends(get_current_user)):
     try:
         conn = get_connection()
         cursor = conn.cursor(dictionary=True)
@@ -19,7 +20,7 @@ def get_company():
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
 @router.put('/company')
-def update_company(data: dict = Body(...)):
+def update_company(data: dict = Body(...), user=Depends(get_current_user)):
     try:
         conn = get_connection()
         cursor = conn.cursor()

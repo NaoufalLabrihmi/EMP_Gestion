@@ -1,4 +1,4 @@
-from fastapi import APIRouter, File, UploadFile, HTTPException, Request, Body
+from fastapi import APIRouter, File, UploadFile, HTTPException, Request, Body, Depends
 from fastapi.responses import JSONResponse, FileResponse
 import tempfile
 from mindee import Client, product, AsyncPredictResponse
@@ -15,6 +15,8 @@ import datetime
 import pdfplumber
 import re
 from pdf_extract_utils import extract_einkommensbescheinigung_fields
+from fastapi import Depends
+from auth import get_current_user
 
 MINDEE_API_KEY = os.getenv("MINDEE_API_KEY", "your_mindee_api_key")
 mindee_client = Client(api_key=MINDEE_API_KEY)
@@ -140,8 +142,9 @@ def list_employees():
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
+# All endpoints below this require authentication
 @router.delete("/employees/delete/{employee_id}")
-def delete_employee(employee_id: int):
+def delete_employee(employee_id: int, user=Depends(get_current_user)):
     try:
         conn = get_connection()
         cursor = conn.cursor()
@@ -154,7 +157,7 @@ def delete_employee(employee_id: int):
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
 @router.patch("/employees/edit/{employee_id}")
-async def edit_employee(employee_id: int, req: Request):
+async def edit_employee(employee_id: int, req: Request, user=Depends(get_current_user)):
     try:
         data = await req.json()
     except Exception:
@@ -198,7 +201,7 @@ async def edit_employee(employee_id: int, req: Request):
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
 @router.get("/employees/pdf/{employee_id}")
-def download_employee_pdf(employee_id: int):
+def download_employee_pdf(employee_id: int, user=Depends(get_current_user)):
     try:
         conn = get_connection()
         cursor = conn.cursor(dictionary=True)
@@ -213,7 +216,7 @@ def download_employee_pdf(employee_id: int):
         raise HTTPException(status_code=500, detail=f"PDF generation error: {str(e)}")
 
 @router.get("/arbeitsvertrag/list")
-def arbeitsvertrag_list():
+def arbeitsvertrag_list(user=Depends(get_current_user)):
     try:
         conn = get_connection()
         cursor = conn.cursor(dictionary=True)
@@ -247,7 +250,7 @@ def arbeitsvertrag_list():
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
 @router.patch("/arbeitsvertrag/edit/{employee_id}")
-def arbeitsvertrag_edit(employee_id: int, data: dict = Body(...)):
+def arbeitsvertrag_edit(employee_id: int, data: dict = Body(...), user=Depends(get_current_user)):
     try:
         conn = get_connection()
         cursor = conn.cursor(dictionary=True)
@@ -312,7 +315,7 @@ def arbeitsvertrag_edit(employee_id: int, data: dict = Body(...)):
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
 @router.get("/arbeitsvertrag/download/{employee_id}")
-def arbeitsvertrag_download(employee_id: int):
+def arbeitsvertrag_download(employee_id: int, user=Depends(get_current_user)):
     try:
         conn = get_connection()
         cursor = conn.cursor(dictionary=True)
@@ -394,6 +397,62 @@ def arbeitsvertrag_download(employee_id: int):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Docx generation error: {str(e)}")
+
+@router.get("/employees/stundenzettel-data/{employee_id}")
+def get_stundenzettel_data(employee_id: int, year: int, user=Depends(get_current_user)):
+    try:
+        conn = get_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT * FROM employees WHERE id = %s", (employee_id,))
+        emp = cursor.fetchone()
+        if not emp:
+            cursor.close()
+            conn.close()
+            raise HTTPException(status_code=404, detail="Employee not found.")
+        cursor.execute("SELECT * FROM company LIMIT 1")
+        company = cursor.fetchone()
+        # Fetch daily entries for the year
+        cursor.execute("""
+            SELECT * FROM einkommensbescheinigung
+            WHERE employee_id = %s AND jahr = %s
+        """, (employee_id, str(year)))
+        rows = cursor.fetchall()
+        # Build entries dict: entries[month][day] = {...}
+        entries = {}
+        for row in rows:
+            month = int(row.get('monat', '0'))
+            # Assume 'tag' field exists, else skip (if not, you need to add day info to your table)
+            day = row.get('tag')
+            if not day:
+                continue
+            day = str(day).zfill(2)
+            if month not in entries:
+                entries[month] = {}
+            entries[month][day] = {
+                'beginn': row.get('beginn', ''),
+                'pause': row.get('pause', ''),
+                'ende': row.get('ende', ''),
+                'dauer': row.get('dauer', ''),
+                'code': row.get('code', ''),
+                'aufgezeichnet_am': row.get('aufgezeichnet_am', ''),
+                'bemerkungen': row.get('bemerkungen', ''),
+            }
+        cursor.close()
+        conn.close()
+        company_name = company["name"] if company else ""
+        employee_name = f"{emp.get('vorname', '')} {emp.get('geburtsname', '')}".strip()
+        employee_number = emp.get('personal_number', '')
+        arbeitszeit_verteilung = emp.get('arbeitszeit_verteilung', '')
+        return {
+            "companyName": company_name,
+            "employeeName": employee_name,
+            "employeeNumber": employee_number,
+            "year": year,
+            "entries": entries,
+            "arbeitszeitVerteilung": arbeitszeit_verteilung
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
 
 

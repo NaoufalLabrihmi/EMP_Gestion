@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Depends
 from db import get_connection
 from pypdf import PdfReader, PdfWriter
 import shutil
@@ -6,6 +6,7 @@ import tempfile
 from pypdf.generic import NameObject, BooleanObject, DictionaryObject
 from fastapi.responses import FileResponse
 from fastapi import Request
+from auth import get_current_user
 
 router = APIRouter()
 
@@ -17,7 +18,7 @@ for field in fields:
 
 
 @router.get("/employees/erklaerung-pdf/{employee_id}")
-def download_erklaerung_pdf(employee_id: int):
+def download_erklaerung_pdf(employee_id: int, user=Depends(get_current_user)):
     try:
         # 1. Fetch employee data and erklaerung_form data
         conn = get_connection()
@@ -428,7 +429,7 @@ def download_erklaerung_pdf(employee_id: int):
         raise HTTPException(status_code=500, detail=f"PDF generation error: {str(e)}")
 
 @router.get("/erklaerung_form/edit/{employee_id}")
-def get_erklaerung_form_for_edit(employee_id: int):
+def get_erklaerung_form_for_edit(employee_id: int, user=Depends(get_current_user)):
     try:
         conn = get_connection()
         cursor = conn.cursor(dictionary=True)
@@ -489,7 +490,7 @@ def get_erklaerung_form_for_edit(employee_id: int):
         raise HTTPException(status_code=500, detail=f"Error fetching erklaerung form: {str(e)}")
 
 @router.patch("/erklaerung_form/edit/{employee_id}")
-async def edit_erklaerung_form(employee_id: int, req: Request):
+async def edit_erklaerung_form(employee_id: int, req: Request, user=Depends(get_current_user)):
     try:
         data = await req.json()
         if not data:
