@@ -13,7 +13,13 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login")
 def get_current_user(token: str = Security(oauth2_scheme)):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        return payload
+        # Always return a dict with 'id' and 'role' keys
+        user_id = payload.get('user_id') or payload.get('id')
+        role = payload.get('role')
+        username = payload.get('sub')
+        if not user_id:
+            raise HTTPException(status_code=401, detail="Invalid token: no user_id")
+        return {"id": user_id, "role": role, "username": username}
     except jwt.ExpiredSignatureError:
         raise HTTPException(status_code=401, detail="Token expired")
     except jwt.InvalidTokenError:

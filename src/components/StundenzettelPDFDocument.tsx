@@ -184,25 +184,29 @@ const styles = StyleSheet.create({
   },
 });
 
-type Props = {
+// Change Props type
+type Employee = {
   companyName: string;
   employeeName: string;
   employeeNumber: string;
-  year: number;
   entries?: {
-    [month: number]: {
-      [day: string]: {
-        beginn?: string;
-        pause?: string;
-        ende?: string;
-        dauer?: string;
-        code?: string;
-        aufgezeichnet_am?: string;
-        bemerkungen?: string;
-      }
+    [day: string]: {
+      beginn?: string;
+      pause?: string;
+      ende?: string;
+      dauer?: string;
+      code?: string;
+      aufgezeichnet_am?: string;
+      bemerkungen?: string;
     }
   };
   arbeitszeitVerteilung?: string;
+};
+
+type Props = {
+  employees: Employee[];
+  month: number;
+  year: number;
   holidays?: { [month: number]: { [day: string]: true } };
 };
 
@@ -223,34 +227,29 @@ const monthNames = [
 ];
 
 export const StundenzettelPDFDocument: React.FC<Props> = ({
-  companyName,
-  employeeName,
-  employeeNumber,
+  employees,
+  month,
   year,
-  entries = {},
-  arbeitszeitVerteilung = '',
   holidays = {},
 }) => {
-  // Parse arbeitszeitVerteilung string to { [weekday]: dauerMinutes }
-  const verteilung: { [weekday: string]: number } = {};
-  arbeitszeitVerteilung.split(',').forEach(part => {
-    const [w, min] = part.split(':');
-    if (w && min) verteilung[w.trim()] = parseInt(min.trim(), 10);
-  });
-  function minToHHMM(mins: number) {
-    if (!mins || isNaN(mins) || mins === 0) return '-';
-    const h = Math.floor(mins / 60);
-    const m = mins % 60;
-    return `${h > 0 ? h + ':' : '0:'}${m.toString().padStart(2, '0')}`;
-  }
-  // Generate 12 pages, one for each month
   return (
     <Document>
-      {Array.from({ length: 12 }, (_, i) => {
-        const month = i + 1;
+      {employees.map((emp, idx) => {
         const days = getDaysInMonth(year, month);
+        // Parse arbeitszeitVerteilung string to { [weekday]: dauerMinutes }
+        const verteilung: { [weekday: string]: number } = {};
+        (emp.arbeitszeitVerteilung || '').split(',').forEach(part => {
+          const [w, min] = part.split(':');
+          if (w && min) verteilung[w.trim()] = parseInt(min.trim(), 10);
+        });
+        function minToHHMM(mins: number) {
+          if (!mins || isNaN(mins) || mins === 0) return '-';
+          const h = Math.floor(mins / 60);
+          const m = mins % 60;
+          return `${h > 0 ? h + ':' : '0:'}${m.toString().padStart(2, '0')}`;
+        }
         return (
-          <Page size="A4" style={styles.page} key={month}>
+          <Page size="A4" style={styles.page} key={emp.employeeNumber + '-' + month}>
             <View style={styles.headerRow}>
               <View style={styles.headerLeft}>
                 <Text style={styles.title}>
@@ -258,15 +257,15 @@ export const StundenzettelPDFDocument: React.FC<Props> = ({
                 </Text>
                 <View style={styles.headerField}>
                   <Text style={styles.label}>Firma:</Text>
-                  <Text style={styles.input}>{companyName}</Text>
+                  <Text style={styles.input}>{emp.companyName}</Text>
                 </View>
                 <View style={styles.headerField}>
                   <Text style={styles.label}>Name des Mitarbeiters:</Text>
-                  <Text style={styles.input}>{employeeName}</Text>
+                  <Text style={styles.input}>{emp.employeeName}</Text>
                 </View>
                 <View style={styles.monthRow}>
                   <Text style={styles.label}>Pers.-Nr.:</Text>
-                  <Text style={styles.persnrInput}>{employeeNumber}</Text>
+                  <Text style={styles.persnrInput}>{emp.employeeNumber}</Text>
                   <Text style={styles.monthLabel}>Monat/Jahr:</Text>
                   <Text style={styles.monthInput}>
                     {monthNames[month]} {year}
@@ -308,27 +307,36 @@ export const StundenzettelPDFDocument: React.FC<Props> = ({
                 </View>
               </View>
               {days.map(({ weekday, day }) => {
-                const entry = entries[month]?.[day.toString().padStart(2, '0')] || {};
+                const entry = emp.entries?.[day.toString().padStart(2, '0')] || {};
                 const isSunday = weekday === 'So';
                 const isHoliday = holidays[month]?.[day.toString().padStart(2, '0')];
-                let beginn = entry.beginn;
-                let pause = entry.pause;
-                let ende = entry.ende;
-                let dauer = entry.dauer;
+                let beginn = '';
+                let pause = '';
+                let ende = '';
+                let dauer = '';
                 let code = entry.code;
                 let aufgezeichnet_am = entry.aufgezeichnet_am;
                 let bemerkungen = entry.bemerkungen;
                 if (isSunday || isHoliday) {
-                  beginn = '';
-                  pause = '';
-                  ende = '';
-                  dauer = '';
                   code = isHoliday ? 'F' : '';
                   aufgezeichnet_am = '';
                   bemerkungen = '';
                 } else {
-                  if (!dauer) {
-                    dauer = minToHHMM(verteilung[weekday] || 0);
+                  beginn = '08:30';
+                  pause = '1:00';
+                  dauer = entry.dauer || '';
+                  // Calculate Ende if Dauer is present and in H:MM or HH:MM format
+                  if (dauer && /^\d{1,2}:\d{2}$/.test(dauer)) {
+                    // Beginn + Pause + Dauer
+                    const [bh, bm] = beginn.split(':').map(Number);
+                    const [ph, pm] = pause.split(':').map(Number);
+                    const [dh, dm] = dauer.split(':').map(Number);
+                    let totalMin = (bh * 60 + bm) + (ph * 60 + pm) + (dh * 60 + dm);
+                    let eh = Math.floor(totalMin / 60);
+                    let em = totalMin % 60;
+                    ende = `${eh.toString().padStart(2, '0')}:${em.toString().padStart(2, '0')}`;
+                  } else {
+                    ende = '';
                   }
                 }
                 return (
@@ -337,16 +345,16 @@ export const StundenzettelPDFDocument: React.FC<Props> = ({
                       <Text style={{ textAlign: 'left' }}>{`${weekday}, ${day.toString().padStart(2, '0')}`}</Text>
                     </View>
                     <View style={[styles.cell, styles.cellSum, { alignItems: 'center', justifyContent: 'center' }]}> 
-                      <Text>{beginn || ''}</Text>
+                      <Text>{beginn}</Text>
                     </View>
                     <View style={[styles.cell, styles.cellSum, { alignItems: 'center', justifyContent: 'center' }]}> 
-                      <Text>{pause || ''}</Text>
+                      <Text>{pause}</Text>
                     </View>
                     <View style={[styles.cell, styles.cellSum, { alignItems: 'center', justifyContent: 'center' }]}> 
-                      <Text>{ende || ''}</Text>
+                      <Text>{ende}</Text>
                     </View>
                     <View style={[styles.cell, styles.cellSum, { alignItems: 'center', justifyContent: 'center' }]}> 
-                      <Text>{dauer || ''}</Text>
+                      <Text>{dauer}</Text>
                     </View>
                     <View style={[styles.cell, styles.cellShort, { alignItems: 'center', justifyContent: 'center' }]}> 
                       <Text>{code || ''}</Text>

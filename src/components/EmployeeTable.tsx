@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import { API_BASE_URL } from '../lib/api';
-import { FaCheck, FaDownload, FaChevronLeft, FaChevronRight, FaPlus, FaTimes, FaTrash, FaEdit, FaFilePdf, FaFileAlt, FaSpinner } from 'react-icons/fa';
+import { FaCheck, FaDownload, FaChevronLeft, FaChevronRight, FaPlus, FaTimes, FaTrash, FaEdit, FaFilePdf, FaFileAlt, FaSpinner, FaHistory } from 'react-icons/fa';
 import { pdf } from '@react-pdf/renderer';
 import EmployeePDF from './EmployeePDF';
 import { useNavigate } from 'react-router-dom';
@@ -9,6 +9,7 @@ import { PDFDownloadLink } from '@react-pdf/renderer';
 import { StundenzettelPDFDocument } from './StundenzettelPDFDocument';
 import { useCallback } from 'react';
 import ReactModal from 'react-modal';
+import { saveAs } from 'file-saver';
 
 function getDaysInMonth(year, month) {
   const days = [];
@@ -113,7 +114,7 @@ function StundenzettelInputModal({ isOpen, onClose, onConfirm, year, month, arbe
   );
 }
 
-const PAGE_SIZE = 7;
+const PAGE_SIZE = 6;
 
 function useStundenzettelData(employeeId, year) {
   const [data, setData] = React.useState(null);
@@ -235,6 +236,84 @@ export default function EmployeeTable() {
   const [selectedYear, setSelectedYear] = useState<{ [id: number]: number }>({});
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 6 }, (_, i) => currentYear - i);
+  const [selectedEmployees, setSelectedEmployees] = useState<number[]>([]);
+  const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1);
+  const [showHistory, setShowHistory] = useState(false);
+  const [history, setHistory] = useState([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+  const HISTORY_PAGE_SIZE = 8;
+  const [historyPage, setHistoryPage] = useState(1);
+
+  useEffect(() => {
+    if (showHistory) setHistoryPage(1);
+  }, [showHistory]);
+
+  const paginatedHistory = useMemo(() => {
+    const start = (historyPage - 1) * HISTORY_PAGE_SIZE;
+    return history.slice(start, start + HISTORY_PAGE_SIZE);
+  }, [history, historyPage]);
+  const historyTotalPages = Math.ceil(history.length / HISTORY_PAGE_SIZE) || 1;
+
+  const fetchHistory = async () => {
+    setLoadingHistory(true);
+    try {
+      const res = await axios.get(`${API_BASE_URL}/employees/stundenzettel-history`);
+      setHistory(res.data);
+    } catch {
+      setHistory([]);
+    }
+    setLoadingHistory(false);
+  };
+
+  const handleShowHistory = () => {
+    setShowHistory(true);
+    fetchHistory();
+  };
+  const handleCloseHistory = () => setShowHistory(false);
+
+  const handleDownloadHistory = async (id) => {
+    try {
+      const res = await axios.get(`${API_BASE_URL}/employees/stundenzettel-history/${id}/download`, { responseType: 'blob' });
+      // Try to get filename from header
+      let filename = 'Stundenzettel.pdf';
+      const disposition = res.headers['content-disposition'];
+      if (disposition) {
+        const match = disposition.match(/filename="?([^";]+)"?/);
+        if (match) filename = match[1];
+      }
+      const blob = new Blob([res.data], { type: 'application/pdf' });
+      const link = document.createElement('a');
+      link.href = window.URL.createObjectURL(blob);
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode?.removeChild(link);
+      window.URL.revokeObjectURL(link.href);
+    } catch {
+      setToast({ message: 'Download fehlgeschlagen', type: 'error' });
+    }
+  };
+
+  const handleRegenerateHistory = async (h) => {
+    try {
+      // Fetch the data for the same employees, month, year
+      const res = await axios.post(
+        `${API_BASE_URL}/employees/stundenzettel-pdf-data`,
+        {
+          employee_ids: JSON.parse(h.employee_ids || '[]'),
+          month: h.month,
+          year: h.year,
+        }
+      );
+      const { employees } = res.data;
+      const holidays = await axios.get(`${API_BASE_URL}/holidays/${h.year}?state=sn`).then(r => r.data);
+      const doc = <StundenzettelPDFDocument employees={employees} month={h.month} year={h.year} holidays={holidays} />;
+      const blob = await pdf(doc).toBlob();
+      saveAs(blob, h.filename || `Stundenzettel_${h.year}_${h.month}.pdf`);
+    } catch {
+      setToast({ message: 'Regenerieren fehlgeschlagen', type: 'error' });
+    }
+  };
 
   useEffect(() => {
     axios.get(`${API_BASE_URL}/employees/list`)
@@ -267,6 +346,7 @@ export default function EmployeeTable() {
     { key: 'vorname', label: 'Vorname', className: 'min-w-[120px] flex-2' },
     { key: 'geburtsname', label: 'Geburtsname', className: 'min-w-[120px] flex-2' },
     { key: 'id_number', label: 'ID Number', className: 'min-w-[120px] flex-2' },
+    { key: 'personal_number', label: 'Personalnummer', className: 'min-w-[120px] flex-2' },
     { key: 'geburtsdatum', label: 'Geburtsdatum', className: 'min-w-[120px] flex-2' },
     { key: 'geschlecht', label: 'Geschlecht', className: 'min-w-[100px] flex-2' },
     { key: 'personalfragebogen', label: 'Personalfragebogen', className: 'min-w-[120px] flex-2', isSpecial: 'personalfragebogen' },
@@ -397,8 +477,201 @@ export default function EmployeeTable() {
     }
   }, [toast]);
 
+  // Add checkbox select logic
+  const handleSelectEmployee = (id: number) => {
+    setSelectedEmployees(prev => prev.includes(id) ? prev.filter(eid => eid !== id) : [...prev, id]);
+  };
+  const handleSelectAll = () => {
+    if (selectedEmployees.length === paginated.length) {
+      setSelectedEmployees([]);
+    } else {
+      setSelectedEmployees(paginated.map(emp => emp.id));
+    }
+  };
+
+  // Download logic
+  const handleMultiStundenzettelDownload = async () => {
+    if (selectedEmployees.length === 0) {
+      setToast({ message: 'Bitte mindestens einen Mitarbeiter auswählen.', type: 'error' });
+      return;
+    }
+    setLoading(true);
+    try {
+      // Fetch employee names for logging
+      const employeeNames = paginated
+        .filter(emp => selectedEmployees.includes(emp.id))
+        .map(emp => `${emp.vorname} ${emp.geburtsname}`);
+      // Generate and download PDF as before
+      const res = await axios.post(
+        `${API_BASE_URL}/employees/stundenzettel-pdf-data`,
+        {
+        employee_ids: selectedEmployees,
+        month: selectedMonth,
+          year: currentYear,
+        }
+      );
+      const { employees } = res.data;
+      const holidays = await axios.get(`${API_BASE_URL}/holidays/${currentYear}?state=sn`).then(r => r.data);
+      const doc = <StundenzettelPDFDocument employees={employees} month={selectedMonth} year={currentYear} holidays={holidays} />;
+      const blob = await pdf(doc).toBlob();
+      saveAs(blob, `Stundenzettel_${currentYear}_${selectedMonth}.pdf`);
+      setToast({ message: 'PDF heruntergeladen!', type: 'success' });
+      // Log the download in the backend with the PDF file
+      const formData = new FormData();
+      formData.append('employee_ids', JSON.stringify(selectedEmployees));
+      formData.append('month', selectedMonth.toString());
+      formData.append('year', currentYear.toString());
+      formData.append('employee_names', JSON.stringify(employeeNames));
+      formData.append('file', new File([blob], `Stundenzettel_${currentYear}_${selectedMonth}.pdf`, { type: 'application/pdf' }));
+      await axios.post(`${API_BASE_URL}/employees/stundenzettel-log-download`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+    } catch (err) {
+      setToast({ message: 'Download fehlgeschlagen', type: 'error' });
+    }
+    setLoading(false);
+  };
+
   return (
     <div className="w-full my-4 px-2 md:px-6">
+      {/* History Icon/Button */}
+      <div className="flex justify-end mb-2">
+        {!showHistory && (
+          <button onClick={handleShowHistory} className="flex items-center gap-2 px-3 py-2 rounded-xl bg-gradient-to-r from-gray-200 to-blue-100 text-blue-700 font-bold shadow hover:scale-105 transition-transform text-base">
+            <FaHistory /> Verlauf
+          </button>
+        )}
+      </div>
+      {/* History Table as Main View */}
+      {showHistory ? (
+        <>
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-3xl font-extrabold text-blue-900 tracking-tight drop-shadow-lg flex items-center gap-2">Stundenzettel Download-Verlauf</h3>
+            <button type="button" onClick={handleCloseHistory} className="px-4 py-2 rounded-xl bg-blue-50 text-blue-500 font-bold shadow hover:bg-blue-100 transition text-base">Back to Employees</button>
+          </div>
+          {/* Desktop Table Layout */}
+          <div className="hidden md:block">
+            <div className="overflow-hidden rounded-3xl border border-blue-100 shadow-2xl bg-white/80 backdrop-blur-xl">
+              <table className="w-full text-base">
+                <thead className="sticky top-0 z-20">
+                  <tr className="bg-gradient-to-r from-blue-100/80 via-cyan-100/80 to-blue-50/80 text-blue-800 text-sm">
+                    <th className="px-3 py-2 text-left font-bold">Datum</th>
+                    <th className="px-3 py-2 text-left font-bold">Monat</th>
+                    <th className="px-3 py-2 text-left font-bold">Jahr</th>
+                    <th className="px-3 py-2 text-left font-bold">Dateiname</th>
+                    <th className="px-3 py-2 text-left font-bold">Mitarbeiter</th>
+                    <th className="px-3 py-2 text-left font-bold">Aktion</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {loadingHistory ? (
+                    <tr><td colSpan={6} className="py-12 text-center text-blue-400 animate-pulse text-base">Lade Verlauf...</td></tr>
+                  ) : history.length === 0 ? (
+                    <tr><td colSpan={6} className="py-12 text-center text-blue-400 text-base">Kein Verlauf gefunden.</td></tr>
+                  ) : paginatedHistory.map((h, idx) => (
+                    <tr key={h.id} className={`group even:bg-blue-50/60 odd:bg-white/80 hover:shadow-xl hover:scale-[1.01] transition-all duration-200 rounded-2xl`} style={{ fontSize: '1.08rem' }}>
+                      <td className="px-3 py-2 text-blue-900 font-medium text-sm">{h.download_date ? new Date(h.download_date).toLocaleString() : ''}</td>
+                      <td className="px-3 py-2 text-blue-900 text-sm">{h.month}</td>
+                      <td className="px-3 py-2 text-blue-900 text-sm">{h.year}</td>
+                      <td className="px-3 py-2 text-blue-900 text-sm">{h.filename}</td>
+                      <td className="px-3 py-2 text-blue-900 text-sm max-w-[180px] truncate" title={Array.isArray(h.employee_names) ? h.employee_names.join(', ') : ''}>{Array.isArray(h.employee_names) ? h.employee_names.join(', ') : ''}</td>
+                      <td className="px-3 py-2 flex gap-2 items-center justify-center group-hover:bg-cyan-50/60 transition rounded-xl">
+                        <button onClick={() => handleDownloadHistory(h.id)} className="p-2 rounded-xl bg-gradient-to-r from-blue-100 to-cyan-100 text-blue-700 shadow hover:scale-110 transition flex items-center justify-center" title="Download gespeicherte PDF">
+                          <FaHistory />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {/* Pagination Controls */}
+            <div className="flex justify-between items-center mt-6 px-1">
+              <div className="text-blue-700 text-sm font-semibold">
+                Page {historyPage} of {historyTotalPages} <span className="text-blue-400 font-normal">({history.length} downloads)</span>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setHistoryPage(p => Math.max(1, p - 1))}
+                  disabled={historyPage === 1}
+                  className="px-3 py-2 rounded-xl bg-blue-100 text-blue-700 font-bold shadow hover:bg-blue-200 transition disabled:opacity-50 flex items-center gap-2 text-sm"
+                  aria-label="Previous page"
+                >
+                  <FaChevronLeft />
+                </button>
+                <button
+                  onClick={() => setHistoryPage(p => Math.min(historyTotalPages, p + 1))}
+                  disabled={historyPage === historyTotalPages}
+                  className="px-3 py-2 rounded-xl bg-blue-100 text-blue-700 font-bold shadow hover:bg-blue-200 transition disabled:opacity-50 flex items-center gap-2 text-sm"
+                  aria-label="Next page"
+                >
+                  <FaChevronRight />
+                </button>
+              </div>
+            </div>
+          </div>
+          {/* Mobile/Card Layout */}
+          <div className="block md:hidden space-y-4 text-base">
+            {loadingHistory ? (
+              <div className="py-8 text-center text-blue-400 animate-pulse text-base">Lade Verlauf...</div>
+            ) : history.length === 0 ? (
+              <div className="py-8 text-center text-blue-400 text-base">Kein Verlauf gefunden.</div>
+            ) : paginatedHistory.map((h) => (
+              <div key={h.id} className="rounded-2xl shadow-xl border border-blue-100 bg-gradient-to-br from-white/90 via-blue-50/90 to-cyan-50/90 p-4 flex flex-col gap-2 hover:scale-[1.01] hover:shadow-2xl transition-all duration-200">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="text-blue-900 font-bold text-xl">{h.filename}</div>
+                  <button onClick={() => handleDownloadHistory(h.id)} className="p-2 rounded-xl bg-gradient-to-r from-blue-100 to-cyan-100 text-blue-700 shadow hover:scale-110 transition flex items-center justify-center" title="Download gespeicherte PDF">
+                    <FaHistory />
+                  </button>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div className="flex flex-col"><span className="text-blue-400 font-semibold">Datum</span><span className="text-blue-900 font-medium truncate">{h.download_date ? new Date(h.download_date).toLocaleString() : ''}</span></div>
+                  <div className="flex flex-col"><span className="text-blue-400 font-semibold">Monat</span><span className="text-blue-900 font-medium truncate">{h.month}</span></div>
+                  <div className="flex flex-col"><span className="text-blue-400 font-semibold">Jahr</span><span className="text-blue-900 font-medium truncate">{h.year}</span></div>
+                  <div className="flex flex-col col-span-2"><span className="text-blue-400 font-semibold">Mitarbeiter</span><span className="text-blue-900 font-medium truncate">{Array.isArray(h.employee_names) ? h.employee_names.join(', ') : ''}</span></div>
+                </div>
+              </div>
+            ))}
+            {/* Pagination Controls for Mobile */}
+            {historyTotalPages > 1 && (
+              <div className="flex justify-between items-center mt-6 px-1">
+                <div className="text-blue-700 text-sm font-semibold">
+                  Page {historyPage} of {historyTotalPages} <span className="text-blue-400 font-normal">({history.length} downloads)</span>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setHistoryPage(p => Math.max(1, p - 1))}
+                    disabled={historyPage === 1}
+                    className="px-3 py-2 rounded-xl bg-blue-100 text-blue-700 font-bold shadow hover:bg-blue-200 transition disabled:opacity-50 flex items-center gap-2 text-sm"
+                    aria-label="Previous page"
+                  >
+                    <FaChevronLeft />
+                  </button>
+                  <button
+                    onClick={() => setHistoryPage(p => Math.min(historyTotalPages, p + 1))}
+                    disabled={historyPage === historyTotalPages}
+                    className="px-3 py-2 rounded-xl bg-blue-100 text-blue-700 font-bold shadow hover:bg-blue-200 transition disabled:opacity-50 flex items-center gap-2 text-sm"
+                    aria-label="Next page"
+                  >
+                    <FaChevronRight />
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </>
+      ) : (
+        <>
+          {/* Month selector and download button */}
+          <div className="flex flex-wrap gap-2 items-center mb-2">
+            <label className="font-semibold">Monat:</label>
+            <select value={selectedMonth} onChange={e => setSelectedMonth(Number(e.target.value))} className="border rounded px-2 py-1">
+              {Array.from({ length: 12 }, (_, i) => (
+                <option key={i + 1} value={i + 1}>{i + 1}</option>
+              ))}
+            </select>
+            <button onClick={handleMultiStundenzettelDownload} className="ml-4 px-4 py-2 rounded bg-gradient-to-r from-blue-500 to-cyan-400 text-white font-bold shadow hover:scale-105 transition-transform" disabled={loading || selectedEmployees.length === 0}>Stundenzettel PDF herunterladen</button>
+          </div>
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-4 z-10 relative px-1">
         <h2 className="text-3xl font-extrabold text-blue-900 tracking-tight drop-shadow-lg flex items-center gap-2">
           <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">Employees</span>
@@ -427,21 +700,22 @@ export default function EmployeeTable() {
             <thead className="sticky top-0 z-20">
               <tr className="bg-gradient-to-r from-blue-100/80 via-cyan-100/80 to-blue-50/80 text-blue-800 text-sm">
                 <th className="px-3 py-2 text-left font-bold">#</th>
+                    <th><input type="checkbox" checked={selectedEmployees.length === paginated.length && paginated.length > 0} onChange={handleSelectAll} /></th>
                 {columns.map(col => (
                   <th key={col.key} className="px-3 py-2 text-left font-bold whitespace-nowrap text-sm">{col.label}</th>
                 ))}
-                <th className="px-3 py-2 text-left font-bold">Stundenzettel PDF</th>
                 <th className="px-3 py-2 text-left font-bold">Actions</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={columns.length + 3} className="py-12 text-center text-blue-400 animate-pulse text-base">Loading...</td></tr>
+                    <tr><td colSpan={columns.length + 4} className="py-12 text-center text-blue-400 animate-pulse text-base">Loading...</td></tr>
               ) : paginated.length === 0 ? (
-                <tr><td colSpan={columns.length + 3} className="py-12 text-center text-blue-400 text-base">No employees found.</td></tr>
+                    <tr><td colSpan={columns.length + 4} className="py-12 text-center text-blue-400 text-base">No employees found.</td></tr>
               ) : paginated.map((emp, idx) => (
                 <tr key={emp.id} className={`group even:bg-blue-50/60 odd:bg-white/80 hover:shadow-xl hover:scale-[1.01] transition-all duration-200 rounded-2xl ${editingId === emp.id ? 'ring-2 ring-cyan-400' : ''}`} style={{ fontSize: '1.08rem' }}>
                   <td className="px-3 py-2 text-blue-900 font-bold text-sm">{(page - 1) * PAGE_SIZE + idx + 1}</td>
+                  <td><input type="checkbox" checked={selectedEmployees.includes(emp.id)} onChange={() => handleSelectEmployee(emp.id)} /></td>
                   {columns.map(col => {
                     if (col.isSpecial === 'personalfragebogen') {
                       return (
@@ -524,14 +798,6 @@ export default function EmployeeTable() {
                       );
                     }
                   })}
-                  {/* Stundenzettel PDF column */}
-                  <td className="px-3 py-2">
-                    <div className="flex flex-col items-center gap-1">
-                      <div className="flex items-center gap-1 bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-100 rounded-2xl px-2 py-1 shadow-inner w-fit mx-auto text-xs">
-                        <StundenzettelPDFDownload employeeId={emp.id} year={currentYear} emp={emp} />
-                      </div>
-                    </div>
-                  </td>
                   <td className="px-3 py-2 flex gap-2 items-center justify-center group-hover:bg-cyan-50/60 transition rounded-xl">
                     {editingId === emp.id ? (
                       <>
@@ -694,6 +960,8 @@ export default function EmployeeTable() {
       {/* Toast Notification */}
       {toast && (
         <div className={`fixed bottom-8 right-8 z-50 px-6 py-3 rounded-2xl shadow-2xl font-bold text-white text-base ${toast.type === 'success' ? 'bg-gradient-to-r from-blue-500 to-cyan-400' : 'bg-gradient-to-r from-red-500 to-pink-400'} animate-fade-in`} style={{ boxShadow: '0 4px 24px 0 rgba(56,189,248,0.10)' }}>{toast.message}</div>
+      )}
+        </>
       )}
     </div>
   );

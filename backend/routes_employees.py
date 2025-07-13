@@ -1,5 +1,5 @@
 from fastapi import APIRouter, File, UploadFile, HTTPException, Request, Body, Depends
-from fastapi.responses import JSONResponse, FileResponse
+from fastapi.responses import JSONResponse, FileResponse, StreamingResponse
 import tempfile
 from mindee import Client, product, AsyncPredictResponse
 import os
@@ -17,6 +17,9 @@ import re
 from pdf_extract_utils import extract_einkommensbescheinigung_fields
 from fastapi import Depends
 from auth import get_current_user
+import io
+from datetime import datetime
+import json
 
 MINDEE_API_KEY = os.getenv("MINDEE_API_KEY", "your_mindee_api_key")
 mindee_client = Client(api_key=MINDEE_API_KEY)
@@ -453,6 +456,240 @@ def get_stundenzettel_data(employee_id: int, year: int, user=Depends(get_current
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
+# --- NEW: Stundenzettel Multi-Employee PDF and History ---
+
+@router.post("/employees/stundenzettel-pdf")
+def generate_stundenzettel_pdf(data: dict = Body(...), user=Depends(get_current_user)):
+    employee_ids = data.get('employee_ids', [])
+    month = int(data.get('month'))
+    year = int(data.get('year'))
+    if not employee_ids or not month or not year:
+        raise HTTPException(status_code=400, detail="Missing parameters.")
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    employees = []
+    for eid in employee_ids:
+        cursor.execute("SELECT * FROM employees WHERE id = %s", (eid,))
+        emp = cursor.fetchone()
+        if not emp:
+            continue
+        cursor.execute("SELECT * FROM company LIMIT 1")
+        company = cursor.fetchone()
+        cursor.execute("SELECT * FROM einkommensbescheinigung WHERE employee_id = %s AND jahr = %s AND monat = %s", (eid, str(year), str(month)))
+        rows = cursor.fetchall()
+        entries = {}
+        for row in rows:
+            day = row.get('tag')
+            if not day:
+                continue
+            day = str(day).zfill(2)
+            entries[day] = {
+                'beginn': row.get('beginn', ''),
+                'pause': row.get('pause', ''),
+                'ende': row.get('ende', ''),
+                'dauer': row.get('dauer', ''),
+                'code': row.get('code', ''),
+                'aufgezeichnet_am': row.get('aufgezeichnet_am', ''),
+                'bemerkungen': row.get('bemerkungen', ''),
+            }
+        employees.append({
+            'companyName': company["name"] if company else "",
+            'employeeName': f"{emp.get('vorname', '')} {emp.get('geburtsname', '')}".strip(),
+            'employeeNumber': emp.get('personal_number', ''),
+            'entries': entries,
+            'arbeitszeitVerteilung': emp.get('arbeitszeit_verteilung', ''),
+        })
+    cursor.close()
+    conn.close()
+    if not employees:
+        raise HTTPException(status_code=404, detail="No employees found.")
+    # Generate PDF using ReportLab (placeholder)
+    from reportlab.pdfgen import canvas
+    from reportlab.lib.pagesizes import A4
+    import io
+    import json
+    from datetime import datetime
+    buffer = io.BytesIO()
+    c = canvas.Canvas(buffer, pagesize=A4)
+    c.drawString(100, 800, f"Stundenzettel PDF for {len(employees)} employees, {month}/{year}")
+    for idx, emp in enumerate(employees):
+        c.drawString(100, 780 - idx*20, f"{emp['employeeName']} ({emp['employeeNumber']})")
+    c.showPage()
+    c.save()
+    buffer.seek(0)
+    # Save download log
+    conn = get_connection()
+    cursor = conn.cursor()
+    employee_names = [emp['employeeName'] for emp in employees]
+    filename = f"Stundenzettel_{year}_{month}_{datetime.now().strftime('%Y%m%d%H%M%S')}.pdf"
+    file_blob = buffer.getvalue()
+    cursor.execute(
+        """
+        INSERT INTO stundenzettel_downloads (user_id, employee_ids, employee_names, month, year, download_date, file_blob, filename)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        """,
+        (
+            user['id'],
+            json.dumps(employee_ids),
+            json.dumps(employee_names),
+            month,
+            year,
+            datetime.now(),
+            file_blob,
+            filename
+        )
+    )
+    conn.commit()
+    cursor.close()
+    conn.close()
+    return StreamingResponse(io.BytesIO(file_blob), media_type="application/pdf", headers={"Content-Disposition": f"attachment; filename={filename}"})
+
+@router.post("/employees/stundenzettel-pdf-data")
+def get_stundenzettel_pdf_data(data: dict = Body(...), user=Depends(get_current_user)):
+    employee_ids = data.get('employee_ids', [])
+    month = int(data.get('month'))
+    year = int(data.get('year'))
+    if not employee_ids or not month or not year:
+        raise HTTPException(status_code=400, detail="Missing parameters.")
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    employees = []
+    from calendar import monthrange
+    import math
+    def hours_to_hhmm(hours):
+        if not hours or math.isnan(hours):
+            return ''
+        h = int(hours)
+        m = int(round((hours - h) * 60))
+        return f"{h:02d}:{m:02d}"
+    weekday_map = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']
+    for eid in employee_ids:
+        cursor.execute("SELECT * FROM employees WHERE id = %s", (eid,))
+        emp = cursor.fetchone()
+        if not emp:
+            continue
+        cursor.execute("SELECT * FROM company LIMIT 1")
+        company = cursor.fetchone()
+        # Get arbeitszeit_verteilung as dict {weekday: hours}
+        arbeitszeit_verteilung = emp.get('arbeitszeit_verteilung', '')
+        verteilung = {}
+        for part in (arbeitszeit_verteilung or '').split(','):
+            if ':' in part:
+                w, h = part.split(':')
+                try:
+                    verteilung[w.strip()] = float(h.strip())
+                except:
+                    pass
+        # Fetch all entries for the month
+        cursor.execute("SELECT * FROM einkommensbescheinigung WHERE employee_id = %s AND jahr = %s AND monat = %s", (eid, str(year), str(month)))
+        rows = cursor.fetchall()
+        # Build entries dict for all days in month
+        entries = {}
+        num_days = monthrange(year, month)[1]
+        for day in range(1, num_days + 1):
+            day_str = str(day).zfill(2)
+            # Find DB entry for this day
+            row = next((r for r in rows if str(r.get('tag')).zfill(2) == day_str), None)
+            if row:
+                dauer = row.get('dauer', '')
+            else:
+                # Get weekday for this date
+                import datetime
+                dt = datetime.date(year, month, day)
+                weekday = weekday_map[dt.weekday()]  # 0=Monday
+                hours = verteilung.get(weekday, 0)
+                dauer = hours_to_hhmm(hours) if hours else ''
+            entries[day_str] = {
+                'beginn': row.get('beginn', '') if row else '',
+                'pause': row.get('pause', '') if row else '',
+                'ende': row.get('ende', '') if row else '',
+                'dauer': dauer,
+                'code': row.get('code', '') if row else '',
+                'aufgezeichnet_am': row.get('aufgezeichnet_am', '') if row else '',
+                'bemerkungen': row.get('bemerkungen', '') if row else '',
+            }
+        employees.append({
+            'companyName': company["name"] if company else "",
+            'employeeName': f"{emp.get('vorname', '')} {emp.get('geburtsname', '')}".strip(),
+            'employeeNumber': emp.get('personal_number', ''),
+            'entries': entries,
+            'arbeitszeitVerteilung': arbeitszeit_verteilung,
+        })
+    cursor.close()
+    conn.close()
+    if not employees:
+        raise HTTPException(status_code=404, detail="No employees found.")
+    return {"employees": employees, "month": month, "year": year}
+
+@router.post("/employees/stundenzettel-log-download")
+def log_stundenzettel_download(
+    employee_ids: str = Body(...),
+    month: int = Body(...),
+    year: int = Body(...),
+    employee_names: str = Body(...),
+    file: UploadFile = File(None),
+    user=Depends(get_current_user)
+):
+    import json as pyjson
+    # Parse JSON fields if sent as strings
+    if isinstance(employee_ids, str):
+        employee_ids = pyjson.loads(employee_ids)
+    if isinstance(employee_names, str):
+        employee_names = pyjson.loads(employee_names)
+    filename = f"Stundenzettel_{year}_{month}_{datetime.now().strftime('%Y%m%d%H%M%S')}.pdf"
+    file_blob = None
+    if file is not None:
+        file_blob = file.file.read()
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        INSERT INTO stundenzettel_downloads (user_id, employee_ids, employee_names, month, year, download_date, filename, file_blob)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        """,
+        (
+            user['id'],
+            pyjson.dumps(employee_ids),
+            pyjson.dumps(employee_names),
+            month,
+            year,
+            datetime.now(),
+            filename,
+            file_blob
+        )
+    )
+    conn.commit()
+    cursor.close()
+    conn.close()
+    return {"message": "Download logged with file"}
+
+@router.get("/employees/stundenzettel-history")
+def get_stundenzettel_history(user=Depends(get_current_user)):
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT id, employee_names, month, year, download_date, filename FROM stundenzettel_downloads WHERE user_id = %s ORDER BY download_date DESC", (user['id'],))
+    rows = cursor.fetchall()
+    for row in rows:
+        try:
+            row['employee_names'] = json.loads(row['employee_names'])
+        except:
+            row['employee_names'] = []
+    cursor.close()
+    conn.close()
+    return rows
+
+@router.get("/employees/stundenzettel-history/{download_id}/download")
+def download_stundenzettel_history(download_id: int, user=Depends(get_current_user)):
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT file_blob, filename, user_id FROM stundenzettel_downloads WHERE id = %s", (download_id,))
+    row = cursor.fetchone()
+    cursor.close()
+    conn.close()
+    if not row or row['user_id'] != user['id']:
+        raise HTTPException(status_code=404, detail="Not found.")
+    return StreamingResponse(io.BytesIO(row['file_blob']), media_type="application/pdf", headers={"Content-Disposition": f"attachment; filename={row['filename']}"})
 
 
 
